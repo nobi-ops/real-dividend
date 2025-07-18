@@ -331,6 +331,7 @@
             <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
                 <h4 style="color: #2d3748; margin-bottom: 15px;">📊 計算根拠</h4>
                 <div id="calculationDetails">
+                    <p style="margin: 5px 0;"><strong>ROI（総資産利益率）</strong> = 純利益 ÷ 総資産 × 100</p>
                     <p style="margin: 5px 0;"><strong>配当利回り</strong> = 年間配当総額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>自社株買い相当利回り</strong> = 年間自社株買い額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>CapEx相当利回り</strong> = 年間設備投資額 ÷ 現在時価総額 × 100</p>
@@ -404,6 +405,7 @@
                 const revenueData = data.revenue_cashflow_data ? data.revenue_cashflow_data.annual_data.find(r => r.year === returnData.year) : null;
                 const debtIssuanceData = data.debt_data ? data.debt_data.issuance.annual_data.find(d => d.year === returnData.year) : null;
                 const debtRepaymentData = data.debt_data ? data.debt_data.repayment.annual_data.find(d => d.year === returnData.year) : null;
+                const roiData = data.roi_data ? data.roi_data.annual_data.find(r => r.year === returnData.year) : null;
                 
                 yearData[returnData.year] = {
                     total_revenue: revenueData?.total_revenue || 0,
@@ -419,7 +421,8 @@
                     capex_amount: capexData?.amount || 0,
                     capex_yield: capexData?.yield || 0,
                     debt_issuance: debtIssuanceData?.amount || 0,
-                    debt_repayment: debtRepaymentData?.amount || 0
+                    debt_repayment: debtRepaymentData?.amount || 0,
+                    roi: roiData?.roi || 0
                 };
             });
             
@@ -437,6 +440,7 @@
                 { label: '売上高', key: 'total_revenue', format: 'currency', class: 'amount revenue-row' },
                 { label: '営業キャッシュフロー', key: 'operating_cash_flow', format: 'currency', class: 'amount revenue-row' },
                 { label: 'OCF/売上比率', key: 'ocf_ratio', format: 'percentage', class: 'percentage positive revenue-row' },
+                { label: 'ROI（総資産利益率）', key: 'roi', format: 'percentage', class: 'percentage positive revenue-row' },
                 { label: '配当総額', key: 'dividend_amount', format: 'currency', class: 'amount' },
                 { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },

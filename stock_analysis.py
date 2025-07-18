@@ -492,6 +492,9 @@ class StockAnalyzer:
         # 債務データ取得（出力を抑制）
         debt_data = self.get_debt_data_silent(ticker)
         
+        # ROIデータ取得（出力を抑制）
+        roi_data = self.get_roi_data_silent(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
@@ -512,6 +515,7 @@ class StockAnalyzer:
             'capex_yields': capex_yields,
             'revenue_cashflow_data': revenue_cashflow_data,
             'debt_data': debt_data,
+            'roi_data': roi_data,
             'total_returns': total_returns
         }
     
@@ -828,6 +832,70 @@ class StockAnalyzer:
                 'issuance': {'annual_data': []},
                 'repayment': {'annual_data': []}
             }
+    
+    def get_roi_data_silent(self, ticker):
+        """ROI（総資産利益率）データを取得（出力なし）"""
+        try:
+            stock = yf.Ticker(ticker)
+            financials = stock.financials
+            balance_sheet = stock.balance_sheet
+            
+            roi_data = {'annual_data': []}
+            
+            if financials is not None and not financials.empty and balance_sheet is not None and not balance_sheet.empty:
+                # 純利益の項目を探す
+                net_income_keys = [
+                    'Net Income',
+                    'Net Income From Continuing Operations',
+                    'Net Income Common Stockholders',
+                    'Net Income Including Noncontrolling Interests'
+                ]
+                
+                # 総資産の項目を探す
+                total_assets_keys = [
+                    'Total Assets',
+                    'Total Assets as Reported'
+                ]
+                
+                # 純利益データを取得
+                net_income_data = {}
+                for key in net_income_keys:
+                    if key in financials.index:
+                        for i, (date, value) in enumerate(financials.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    net_income_data[date.year] = value
+                        break
+                
+                # 総資産データを取得
+                total_assets_data = {}
+                for key in total_assets_keys:
+                    if key in balance_sheet.index:
+                        for i, (date, value) in enumerate(balance_sheet.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    total_assets_data[date.year] = value
+                        break
+                
+                # ROI計算
+                for year in net_income_data:
+                    if year in total_assets_data:
+                        net_income = net_income_data[year]
+                        total_assets = total_assets_data[year]
+                        
+                        if total_assets > 0:
+                            roi = (net_income / total_assets) * 100
+                            roi_data['annual_data'].append({
+                                'year': year,
+                                'roi': roi,
+                                'net_income': net_income,
+                                'total_assets': total_assets
+                            })
+            
+            return roi_data
+            
+        except Exception as e:
+            return {'annual_data': []}
     
     def calculate_capex_equivalent_yield_silent(self, stock_data, capex_data):
         """CapEx相当配当率を計算（出力なし）"""
