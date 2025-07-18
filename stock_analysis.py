@@ -483,6 +483,9 @@ class StockAnalyzer:
         # Revenue & Cash Flowデータ取得（出力を抑制）
         revenue_cashflow_data = self.get_revenue_and_cashflow_data_silent(ticker)
         
+        # 債務データ取得（出力を抑制）
+        debt_data = self.get_debt_data_silent(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
@@ -502,6 +505,7 @@ class StockAnalyzer:
             'capex_data': capex_data,
             'capex_yields': capex_yields,
             'revenue_cashflow_data': revenue_cashflow_data,
+            'debt_data': debt_data,
             'total_returns': total_returns
         }
     
@@ -755,6 +759,69 @@ class StockAnalyzer:
             
         except Exception as e:
             return {'latest': 0, 'three_year_avg': 0, 'annual_data': []}
+    
+    def get_debt_data_silent(self, ticker):
+        """債務発行・返済データを取得（出力なし）"""
+        try:
+            stock = yf.Ticker(ticker)
+            cashflow = stock.cashflow
+            
+            debt_data = {
+                'issuance': {'annual_data': []},
+                'repayment': {'annual_data': []}
+            }
+            
+            if cashflow is not None and not cashflow.empty:
+                # 債務発行の項目を探す
+                issuance_keys = [
+                    'Issuance Of Debt',
+                    'Proceeds From Issuance Of Debt',
+                    'Long Term Debt Issuance',
+                    'Net Long Term Debt Issuance',
+                    'Proceeds from Long-term Debt'
+                ]
+                
+                # 債務返済の項目を探す
+                repayment_keys = [
+                    'Repayment Of Debt',
+                    'Long Term Debt Payments',
+                    'Repayment of Long-term Debt',
+                    'Long Term Debt Repayment'
+                ]
+                
+                # 債務発行データを取得
+                for key in issuance_keys:
+                    if key in cashflow.index:
+                        for i, (date, value) in enumerate(cashflow.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    amount = abs(value) if value > 0 else 0  # 正の値のみ
+                                    debt_data['issuance']['annual_data'].append({
+                                        'year': date.year,
+                                        'amount': amount
+                                    })
+                        break
+                
+                # 債務返済データを取得
+                for key in repayment_keys:
+                    if key in cashflow.index:
+                        for i, (date, value) in enumerate(cashflow.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    amount = abs(value)  # 絶対値を取得
+                                    debt_data['repayment']['annual_data'].append({
+                                        'year': date.year,
+                                        'amount': amount
+                                    })
+                        break
+            
+            return debt_data
+            
+        except Exception as e:
+            return {
+                'issuance': {'annual_data': []},
+                'repayment': {'annual_data': []}
+            }
     
     def calculate_capex_equivalent_yield_silent(self, stock_data, capex_data):
         """CapEx相当配当率を計算（出力なし）"""

@@ -401,6 +401,8 @@
                 const buybackData = data.buyback_yields.annual_yields.find(b => b.year === returnData.year);
                 const capexData = data.capex_yields ? data.capex_yields.annual_yields.find(c => c.year === returnData.year) : null;
                 const revenueData = data.revenue_cashflow_data ? data.revenue_cashflow_data.annual_data.find(r => r.year === returnData.year) : null;
+                const debtIssuanceData = data.debt_data ? data.debt_data.issuance.annual_data.find(d => d.year === returnData.year) : null;
+                const debtRepaymentData = data.debt_data ? data.debt_data.repayment.annual_data.find(d => d.year === returnData.year) : null;
                 
                 yearData[returnData.year] = {
                     total_revenue: revenueData?.total_revenue || 0,
@@ -412,7 +414,9 @@
                     total_return: returnData.total_return,
                     buyback_amount: buybackData?.amount || 0,
                     capex_amount: capexData?.amount || 0,
-                    capex_yield: capexData?.yield || 0
+                    capex_yield: capexData?.yield || 0,
+                    debt_issuance: debtIssuanceData?.amount || 0,
+                    debt_repayment: debtRepaymentData?.amount || 0
                 };
             });
             
@@ -436,6 +440,8 @@
                 { label: '自社株買い相当利回り', key: 'buyback_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '設備投資額 (CapEx)', key: 'capex_amount', format: 'currency', class: 'amount' },
                 { label: 'CapEx相当利回り', key: 'capex_yield', format: 'percentage', class: 'percentage positive' },
+                { label: '債務発行額', key: 'debt_issuance', format: 'currency', class: 'amount' },
+                { label: '債務返済額', key: 'debt_repayment', format: 'currency', class: 'amount' },
                 { label: '総合株主還元率', key: 'total_return', format: 'percentage', class: 'percentage highlight positive', highlight: true }
             ];
             
