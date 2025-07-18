@@ -62,9 +62,35 @@ python3 stock_analysis.py
 
 ## テスト推奨銘柄
 
+### 🇺🇸 米国株
 - **AAPL** (Apple) - 大規模な自社株買いで有名
 - **MSFT** (Microsoft) - 配当と自社株買いのバランス型
 - **JNJ** (Johnson & Johnson) - 高配当銘柄の代表例
+
+### 🇮🇩 インドネシア株
+- **ANTM** (PT Aneka Tambang) - 鉱業会社
+- **BBCA** (Bank Central Asia) - 大手銀行
+- **BBRI** (Bank Rakyat Indonesia) - 国営銀行
+
+### 🇸🇬 シンガポール株  
+- **C6L** (Singapore Airlines) - 航空会社
+- **D05** (DBS Group) - 大手銀行
+- **U11** (United Overseas Bank) - 銀行
+- **S68** (Singapore Exchange) - 証券取引所
+
+### 🇯🇵 日本株
+- **7203** (トヨタ自動車)
+- **9984** (ソフトバンクグループ)
+
+### 🇭🇰 香港株
+- **0700** (Tencent) - テンセント
+
+### 🌍 その他対応市場
+- 🇬🇧 ロンドン株(.L)
+- 🇨🇦 カナダ株(.TO)  
+- 🇦🇺 オーストラリア株(.AX)
+- 🇩🇪 ドイツ株(.DE)
+- 🇫🇷 フランス株(.PA)
 
 ## ファイル構成
 

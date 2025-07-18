@@ -14,8 +14,19 @@ class StockAnalyzer:
     def get_stock_data(self, ticker):
         """ティッカーコードから株式データを取得"""
         try:
-            # 国際株対応: .JKなどのサフィックス自動検索
-            possible_tickers = [ticker, f"{ticker}.JK", f"{ticker}.T", f"{ticker}.L", f"{ticker}.HK"]
+            # 国際株対応: 各市場のサフィックス自動検索
+            possible_tickers = [
+                ticker,           # 米国株（サフィックスなし）
+                f"{ticker}.JK",   # インドネシア株
+                f"{ticker}.SI",   # シンガポール株
+                f"{ticker}.T",    # 日本株（東証）
+                f"{ticker}.HK",   # 香港株
+                f"{ticker}.L",    # ロンドン株
+                f"{ticker}.TO",   # カナダ株（トロント）
+                f"{ticker}.AX",   # オーストラリア株
+                f"{ticker}.DE",   # ドイツ株
+                f"{ticker}.PA",   # フランス株
+            ]
             
             stock = None
             working_ticker = ticker
