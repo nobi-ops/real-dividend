@@ -303,36 +303,7 @@
                     </tr>
                 </thead>
                 <tbody id="analysisTableBody">
-                    <tr>
-                        <td class="row-header">配当総額</td>
-                        <td id="dividend-amount-2024" class="amount">-</td>
-                        <td id="dividend-amount-2023" class="amount">-</td>
-                        <td id="dividend-amount-2022" class="amount">-</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">配当利回り</td>
-                        <td id="dividend-yield-2024" class="percentage positive">-</td>
-                        <td id="dividend-yield-2023" class="percentage positive">-</td>
-                        <td id="dividend-yield-2022" class="percentage positive">-</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">自社株買い額</td>
-                        <td id="buyback-amount-2024" class="amount">-</td>
-                        <td id="buyback-amount-2023" class="amount">-</td>
-                        <td id="buyback-amount-2022" class="amount">-</td>
-                    </tr>
-                    <tr>
-                        <td class="row-header">自社株買い相当利回り</td>
-                        <td id="buyback-yield-2024" class="percentage positive">-</td>
-                        <td id="buyback-yield-2023" class="percentage positive">-</td>
-                        <td id="buyback-yield-2022" class="percentage positive">-</td>
-                    </tr>
-                    <tr class="highlight-row">
-                        <td class="row-header"><strong>総合株主還元率</strong></td>
-                        <td id="total-return-2024" class="percentage highlight positive"><strong>-</strong></td>
-                        <td id="total-return-2023" class="percentage highlight positive"><strong>-</strong></td>
-                        <td id="total-return-2022" class="percentage highlight positive"><strong>-</strong></td>
-                    </tr>
+                    <!-- テーブル内容は動的に生成 -->
                 </tbody>
             </table>
 
@@ -399,19 +370,8 @@
             document.getElementById('marketCap').textContent = `$${data.market_cap.toLocaleString()}`;
             document.getElementById('currentDividendYield').textContent = `${data.current_dividend_yield.toFixed(2)}%`;
             
-            // 年度ヘッダーを更新
-            const sortedReturns = data.total_returns.annual_returns.sort((a, b) => b.year - a.year);
-            if (sortedReturns.length >= 1) {
-                document.getElementById('year1Header').textContent = `${sortedReturns[0].year}年度`;
-            }
-            if (sortedReturns.length >= 2) {
-                document.getElementById('year2Header').textContent = `${sortedReturns[1].year}年度`;
-            }
-            if (sortedReturns.length >= 3) {
-                document.getElementById('year3Header').textContent = `${sortedReturns[2].year}年度`;
-            }
-            
             // データを年度別に整理
+            const sortedReturns = data.total_returns.annual_returns.sort((a, b) => b.year - a.year);
             const yearData = {};
             sortedReturns.forEach(returnData => {
                 yearData[returnData.year] = {
@@ -423,33 +383,58 @@
                 };
             });
             
-            // 横軸テーブルに値を設定
+            // テーブル本体を動的に生成
+            const tableBody = document.getElementById('analysisTableBody');
             const years = sortedReturns.map(r => r.year);
             
-            // 配当総額
-            if (years[0]) document.getElementById(`dividend-amount-${years[0]}`).textContent = `$${yearData[years[0]].dividend_amount.toLocaleString()}`;
-            if (years[1]) document.getElementById(`dividend-amount-${years[1]}`).textContent = `$${yearData[years[1]].dividend_amount.toLocaleString()}`;
-            if (years[2]) document.getElementById(`dividend-amount-${years[2]}`).textContent = `$${yearData[years[2]].dividend_amount.toLocaleString()}`;
+            // 年度ヘッダーのテキストも更新
+            document.getElementById('year1Header').textContent = years[0] ? `${years[0]}年度` : '年度1';
+            document.getElementById('year2Header').textContent = years[1] ? `${years[1]}年度` : '年度2';  
+            document.getElementById('year3Header').textContent = years[2] ? `${years[2]}年度` : '年度3';
             
-            // 配当利回り
-            if (years[0]) document.getElementById(`dividend-yield-${years[0]}`).textContent = `${yearData[years[0]].dividend_yield.toFixed(2)}%`;
-            if (years[1]) document.getElementById(`dividend-yield-${years[1]}`).textContent = `${yearData[years[1]].dividend_yield.toFixed(2)}%`;
-            if (years[2]) document.getElementById(`dividend-yield-${years[2]}`).textContent = `${yearData[years[2]].dividend_yield.toFixed(2)}%`;
+            // テーブル行を生成
+            const metrics = [
+                { label: '配当総額', key: 'dividend_amount', format: 'currency', class: 'amount' },
+                { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
+                { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },
+                { label: '自社株買い相当利回り', key: 'buyback_yield', format: 'percentage', class: 'percentage positive' },
+                { label: '総合株主還元率', key: 'total_return', format: 'percentage', class: 'percentage highlight positive', highlight: true }
+            ];
             
-            // 自社株買い額
-            if (years[0]) document.getElementById(`buyback-amount-${years[0]}`).textContent = `$${yearData[years[0]].buyback_amount.toLocaleString()}`;
-            if (years[1]) document.getElementById(`buyback-amount-${years[1]}`).textContent = `$${yearData[years[1]].buyback_amount.toLocaleString()}`;
-            if (years[2]) document.getElementById(`buyback-amount-${years[2]}`).textContent = `$${yearData[years[2]].buyback_amount.toLocaleString()}`;
+            tableBody.innerHTML = '';
             
-            // 自社株買い相当利回り
-            if (years[0]) document.getElementById(`buyback-yield-${years[0]}`).textContent = `${yearData[years[0]].buyback_yield.toFixed(2)}%`;
-            if (years[1]) document.getElementById(`buyback-yield-${years[1]}`).textContent = `${yearData[years[1]].buyback_yield.toFixed(2)}%`;
-            if (years[2]) document.getElementById(`buyback-yield-${years[2]}`).textContent = `${yearData[years[2]].buyback_yield.toFixed(2)}%`;
-            
-            // 総合株主還元率
-            if (years[0]) document.getElementById(`total-return-${years[0]}`).innerHTML = `<strong>${yearData[years[0]].total_return.toFixed(2)}%</strong>`;
-            if (years[1]) document.getElementById(`total-return-${years[1]}`).innerHTML = `<strong>${yearData[years[1]].total_return.toFixed(2)}%</strong>`;
-            if (years[2]) document.getElementById(`total-return-${years[2]}`).innerHTML = `<strong>${yearData[years[2]].total_return.toFixed(2)}%</strong>`;
+            metrics.forEach(metric => {
+                const row = document.createElement('tr');
+                if (metric.highlight) row.classList.add('highlight-row');
+                
+                // 項目名
+                const labelCell = document.createElement('td');
+                labelCell.className = 'row-header';
+                labelCell.innerHTML = metric.highlight ? `<strong>${metric.label}</strong>` : metric.label;
+                row.appendChild(labelCell);
+                
+                // 各年度のデータ
+                years.forEach(year => {
+                    const cell = document.createElement('td');
+                    cell.className = metric.class;
+                    
+                    if (yearData[year]) {
+                        const value = yearData[year][metric.key];
+                        if (metric.format === 'currency') {
+                            cell.textContent = `$${value.toLocaleString()}`;
+                        } else if (metric.format === 'percentage') {
+                            const content = `${value.toFixed(2)}%`;
+                            cell.innerHTML = metric.highlight ? `<strong>${content}</strong>` : content;
+                        }
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                tableBody.appendChild(row);
+            });
             
             document.getElementById('results').style.display = 'block';
         }
