@@ -292,3 +292,198 @@ class StockDatabase:
             'country_count': country_count,
             'last_updated': last_updated
         }
+    
+    def export_database(self):
+        """データベース全体をJSONファイルとしてエクスポート"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # 全銘柄の基本情報を取得
+            cursor.execute('''
+                SELECT ticker, company_name, country, currency, current_price, 
+                       market_cap, current_dividend_yield, last_updated
+                FROM stocks 
+                ORDER BY ticker
+            ''')
+            stocks_data = cursor.fetchall()
+            
+            export_data = {
+                'export_info': {
+                    'export_date': datetime.now().isoformat(),
+                    'total_stocks': len(stocks_data),
+                    'format_version': '1.0'
+                },
+                'stocks': []
+            }
+            
+            # 各銘柄の詳細データを取得
+            for stock_row in stocks_data:
+                ticker = stock_row[0]
+                
+                # 年次データを取得
+                cursor.execute('''
+                    SELECT year, total_revenue, operating_cash_flow, ocf_ratio,
+                           dividend_amount, dividend_yield, buyback_amount, buyback_yield,
+                           capex_amount, capex_yield, debt_issuance, debt_repayment, roi,
+                           total_return_without_capex, total_return_with_capex,
+                           net_income, total_assets
+                    FROM annual_data 
+                    WHERE stock_id = (SELECT id FROM stocks WHERE ticker = ?)
+                    ORDER BY year DESC
+                ''', (ticker,))
+                annual_data = cursor.fetchall()
+                
+                stock_data = {
+                    'ticker': stock_row[0],
+                    'company_name': stock_row[1],
+                    'country': stock_row[2],
+                    'currency': stock_row[3],
+                    'current_price': stock_row[4],
+                    'market_cap': stock_row[5],
+                    'current_dividend_yield': stock_row[6],
+                    'last_updated': stock_row[7],
+                    'annual_data': []
+                }
+                
+                for annual_row in annual_data:
+                    annual_item = {
+                        'year': annual_row[0],
+                        'total_revenue': annual_row[1],
+                        'operating_cash_flow': annual_row[2],
+                        'ocf_ratio': annual_row[3],
+                        'dividend_amount': annual_row[4],
+                        'dividend_yield': annual_row[5],
+                        'buyback_amount': annual_row[6],
+                        'buyback_yield': annual_row[7],
+                        'capex_amount': annual_row[8],
+                        'capex_yield': annual_row[9],
+                        'debt_issuance': annual_row[10],
+                        'debt_repayment': annual_row[11],
+                        'roi': annual_row[12],
+                        'total_return_without_capex': annual_row[13],
+                        'total_return_with_capex': annual_row[14],
+                        'net_income': annual_row[15],
+                        'total_assets': annual_row[16]
+                    }
+                    stock_data['annual_data'].append(annual_item)
+                
+                export_data['stocks'].append(stock_data)
+            
+            conn.close()
+            return export_data
+            
+        except Exception as e:
+            conn.close()
+            raise Exception(f"エクスポートエラー: {str(e)}")
+    
+    def import_database(self, import_data, clear_existing=False):
+        """JSONデータからデータベースをインポート"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            if clear_existing:
+                # 既存データを削除
+                cursor.execute('DELETE FROM annual_data')
+                cursor.execute('DELETE FROM stocks')
+                print("既存データを削除しました")
+            
+            imported_count = 0
+            updated_count = 0
+            
+            for stock_data in import_data.get('stocks', []):
+                ticker = stock_data.get('ticker')
+                if not ticker:
+                    continue
+                
+                # 既存銘柄をチェック
+                cursor.execute('SELECT id FROM stocks WHERE ticker = ?', (ticker,))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    # 既存銘柄を更新
+                    cursor.execute('''
+                        UPDATE stocks SET 
+                        company_name = ?, country = ?, currency = ?, current_price = ?,
+                        market_cap = ?, current_dividend_yield = ?, last_updated = ?
+                        WHERE ticker = ?
+                    ''', (
+                        stock_data.get('company_name'),
+                        stock_data.get('country'),
+                        stock_data.get('currency'),
+                        stock_data.get('current_price'),
+                        stock_data.get('market_cap'),
+                        stock_data.get('current_dividend_yield'),
+                        stock_data.get('last_updated'),
+                        ticker
+                    ))
+                    stock_id = existing[0]
+                    updated_count += 1
+                else:
+                    # 新規銘柄を追加
+                    cursor.execute('''
+                        INSERT INTO stocks 
+                        (ticker, company_name, country, currency, current_price, market_cap, current_dividend_yield, last_updated)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        ticker,
+                        stock_data.get('company_name'),
+                        stock_data.get('country'),
+                        stock_data.get('currency'),
+                        stock_data.get('current_price'),
+                        stock_data.get('market_cap'),
+                        stock_data.get('current_dividend_yield'),
+                        stock_data.get('last_updated')
+                    ))
+                    stock_id = cursor.lastrowid
+                    imported_count += 1
+                
+                # 既存の年次データを削除
+                cursor.execute('DELETE FROM annual_data WHERE stock_id = ?', (stock_id,))
+                
+                # 年次データをインポート
+                for annual_data in stock_data.get('annual_data', []):
+                    cursor.execute('''
+                        INSERT INTO annual_data (
+                            stock_id, year, total_revenue, operating_cash_flow, ocf_ratio,
+                            dividend_amount, dividend_yield, buyback_amount, buyback_yield,
+                            capex_amount, capex_yield, debt_issuance, debt_repayment, roi,
+                            total_return_without_capex, total_return_with_capex,
+                            net_income, total_assets
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        stock_id,
+                        annual_data.get('year'),
+                        annual_data.get('total_revenue'),
+                        annual_data.get('operating_cash_flow'),
+                        annual_data.get('ocf_ratio'),
+                        annual_data.get('dividend_amount'),
+                        annual_data.get('dividend_yield'),
+                        annual_data.get('buyback_amount'),
+                        annual_data.get('buyback_yield'),
+                        annual_data.get('capex_amount'),
+                        annual_data.get('capex_yield'),
+                        annual_data.get('debt_issuance'),
+                        annual_data.get('debt_repayment'),
+                        annual_data.get('roi'),
+                        annual_data.get('total_return_without_capex'),
+                        annual_data.get('total_return_with_capex'),
+                        annual_data.get('net_income'),
+                        annual_data.get('total_assets')
+                    ))
+            
+            conn.commit()
+            conn.close()
+            
+            return {
+                'success': True,
+                'imported_count': imported_count,
+                'updated_count': updated_count,
+                'total_processed': imported_count + updated_count
+            }
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            raise Exception(f"インポートエラー: {str(e)}")

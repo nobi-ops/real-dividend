@@ -100,6 +100,49 @@ def delete_stock_from_database(ticker):
     except Exception as e:
         return jsonify({'error': f'データベースエラー: {str(e)}'}), 500
 
+@app.route('/api/database/export', methods=['GET'])
+def export_database():
+    """データベース全体をJSONとしてエクスポート"""
+    try:
+        db = StockDatabase()
+        export_data = db.export_database()
+        
+        # ファイル名に現在時刻を含める
+        from datetime import datetime
+        filename = f"stock_analysis_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        response = jsonify(export_data)
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        response.headers['Content-Type'] = 'application/json'
+        
+        return response
+    except Exception as e:
+        return jsonify({'error': f'エクスポートエラー: {str(e)}'}), 500
+
+@app.route('/api/database/import', methods=['POST'])
+def import_database():
+    """JSONファイルからデータベースをインポート"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'JSONデータが必要です'}), 400
+        
+        clear_existing = request.args.get('clear', 'false').lower() == 'true'
+        
+        db = StockDatabase()
+        result = db.import_database(data, clear_existing=clear_existing)
+        
+        return jsonify({
+            'message': 'インポートが完了しました',
+            'imported_count': result['imported_count'],
+            'updated_count': result['updated_count'],
+            'total_processed': result['total_processed']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'インポートエラー: {str(e)}'}), 500
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 8080))

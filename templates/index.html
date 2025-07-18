@@ -267,6 +267,12 @@
                 <button onclick="toggleDatabaseView()" class="search-btn" style="margin-right: 10px; padding: 10px 20px; font-size: 14px;">
                     📁 データベース表示
                 </button>
+                <button onclick="exportDatabase()" class="search-btn" style="margin-right: 10px; padding: 10px 20px; font-size: 14px; background: #28a745;">
+                    💾 データエクスポート
+                </button>
+                <button onclick="showImportDialog()" class="search-btn" style="margin-right: 10px; padding: 10px 20px; font-size: 14px; background: #ffc107; color: #212529;">
+                    📂 データインポート
+                </button>
                 <button onclick="clearDatabase()" class="search-btn" style="background: #dc3545; padding: 10px 20px; font-size: 14px;">
                     🗑️ データベース全削除
                 </button>
@@ -392,6 +398,38 @@
                 <!-- 銘柄リストが動的に生成される -->
             </div>
         </div>
+
+        <!-- インポートダイアログ -->
+        <div id="importDialog" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+                <h3 style="margin: 0 0 20px 0; color: #2d3748;">📂 データベースインポート</h3>
+                <p style="margin-bottom: 20px; color: #6c757d;">JSONバックアップファイルを選択してデータベースを復元します。</p>
+                
+                <input type="file" id="importFileInput" accept=".json" style="margin-bottom: 20px; width: 100%; padding: 10px; border: 2px dashed #dee2e6; border-radius: 8px;">
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="clearExistingData">
+                        <span style="color: #dc3545; font-weight: bold;">既存データを削除してから復元</span>
+                    </label>
+                    <p style="margin: 5px 0 0 26px; font-size: 12px; color: #6c757d;">
+                        チェックすると既存のデータベースを完全に置き換えます。未チェックの場合は重複データを更新します。
+                    </p>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="closeImportDialog()" class="search-btn" style="background: #6c757d; padding: 10px 20px; font-size: 14px;">
+                        キャンセル
+                    </button>
+                    <button onclick="executeImport()" class="search-btn" style="background: #ffc107; color: #212529; padding: 10px 20px; font-size: 14px;">
+                        📂 インポート実行
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 隠しファイル入力（エクスポート用） -->
+        <input type="file" id="hiddenFileInput" style="display: none;" accept=".json">
     </div>
 
     <script>
@@ -836,6 +874,111 @@
                 await loadDatabaseStocks(); // リストを更新
             } catch (error) {
                 alert(`削除エラー: ${error.message}`);
+            }
+        }
+
+        async function exportDatabase() {
+            try {
+                const response = await fetch('/api/database/export');
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'エクスポートに失敗しました');
+                }
+                
+                const data = await response.json();
+                
+                // JSONファイルとしてダウンロード
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                const now = new Date();
+                const filename = `stock_analysis_backup_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.json`;
+                link.download = filename;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                alert(`✅ データベースをエクスポートしました\\n銘柄数: ${data.export_info.total_stocks}`);
+                
+            } catch (error) {
+                alert(`❌ エクスポートエラー: ${error.message}`);
+            }
+        }
+
+        function showImportDialog() {
+            document.getElementById('importDialog').style.display = 'block';
+        }
+
+        function closeImportDialog() {
+            document.getElementById('importDialog').style.display = 'none';
+            document.getElementById('importFileInput').value = '';
+            document.getElementById('clearExistingData').checked = false;
+        }
+
+        async function executeImport() {
+            const fileInput = document.getElementById('importFileInput');
+            const clearExisting = document.getElementById('clearExistingData').checked;
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('JSONファイルを選択してください');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            if (!file.name.endsWith('.json')) {
+                alert('JSONファイルを選択してください');
+                return;
+            }
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                // データ形式の簡単なバリデーション
+                if (!data.stocks || !Array.isArray(data.stocks)) {
+                    throw new Error('無効なバックアップファイル形式です');
+                }
+                
+                const confirmation = clearExisting 
+                    ? `既存データを削除して ${data.stocks.length} 銘柄を復元しますか？\\n\\n⚠️ 既存データは完全に消去されます！`
+                    : `${data.stocks.length} 銘柄をインポートしますか？\\n\\n重複する銘柄は更新されます。`;
+                
+                if (!confirm(confirmation)) {
+                    return;
+                }
+                
+                const url = clearExisting ? '/api/database/import?clear=true' : '/api/database/import';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'インポートに失敗しました');
+                }
+                
+                alert(`✅ インポートが完了しました！\\n\\n新規追加: ${result.imported_count} 銘柄\\n更新: ${result.updated_count} 銘柄\\n合計: ${result.total_processed} 銘柄`);
+                
+                closeImportDialog();
+                
+                // データベース表示中なら更新
+                if (document.getElementById('databaseView').style.display !== 'none') {
+                    await loadDatabaseStocks();
+                }
+                
+            } catch (error) {
+                alert(`❌ インポートエラー: ${error.message}`);
             }
         }
     </script>
