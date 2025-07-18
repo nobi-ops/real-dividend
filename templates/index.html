@@ -207,6 +207,12 @@
             font-weight: bold;
         }
 
+        .row-header {
+            font-weight: bold;
+            background: #f8f9fa !important;
+            color: #495057;
+        }
+
         @media (max-width: 768px) {
             .search-form {
                 flex-direction: column;
@@ -290,16 +296,57 @@
             <table class="analysis-table">
                 <thead>
                     <tr>
-                        <th>年度</th>
-                        <th>項目</th>
-                        <th>金額</th>
-                        <th>利回り</th>
-                        <th>計算根拠</th>
+                        <th style="width: 200px;">項目</th>
+                        <th id="year1Header">2024年度</th>
+                        <th id="year2Header">2023年度</th>
+                        <th id="year3Header">2022年度</th>
                     </tr>
                 </thead>
                 <tbody id="analysisTableBody">
+                    <tr>
+                        <td class="row-header">配当総額</td>
+                        <td id="dividend-amount-2024" class="amount">-</td>
+                        <td id="dividend-amount-2023" class="amount">-</td>
+                        <td id="dividend-amount-2022" class="amount">-</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">配当利回り</td>
+                        <td id="dividend-yield-2024" class="percentage positive">-</td>
+                        <td id="dividend-yield-2023" class="percentage positive">-</td>
+                        <td id="dividend-yield-2022" class="percentage positive">-</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">自社株買い額</td>
+                        <td id="buyback-amount-2024" class="amount">-</td>
+                        <td id="buyback-amount-2023" class="amount">-</td>
+                        <td id="buyback-amount-2022" class="amount">-</td>
+                    </tr>
+                    <tr>
+                        <td class="row-header">自社株買い相当利回り</td>
+                        <td id="buyback-yield-2024" class="percentage positive">-</td>
+                        <td id="buyback-yield-2023" class="percentage positive">-</td>
+                        <td id="buyback-yield-2022" class="percentage positive">-</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td class="row-header"><strong>総合株主還元率</strong></td>
+                        <td id="total-return-2024" class="percentage highlight positive"><strong>-</strong></td>
+                        <td id="total-return-2023" class="percentage highlight positive"><strong>-</strong></td>
+                        <td id="total-return-2022" class="percentage highlight positive"><strong>-</strong></td>
+                    </tr>
                 </tbody>
             </table>
+
+            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                <h4 style="color: #2d3748; margin-bottom: 15px;">📊 計算根拠</h4>
+                <div id="calculationDetails">
+                    <p style="margin: 5px 0;"><strong>配当利回り</strong> = 年間配当総額 ÷ 現在時価総額 × 100</p>
+                    <p style="margin: 5px 0;"><strong>自社株買い相当利回り</strong> = 年間自社株買い額 ÷ 現在時価総額 × 100</p>
+                    <p style="margin: 5px 0;"><strong>総合株主還元率</strong> = 配当利回り + 自社株買い相当利回り</p>
+                    <p style="margin: 10px 0 5px 0; color: #6c757d; font-size: 14px;">
+                        ※ すべて現在の時価総額で計算しているため、年度ごとの比較が可能です
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -352,46 +399,57 @@
             document.getElementById('marketCap').textContent = `$${data.market_cap.toLocaleString()}`;
             document.getElementById('currentDividendYield').textContent = `${data.current_dividend_yield.toFixed(2)}%`;
             
-            // 分析テーブルを構築
-            const tableBody = document.getElementById('analysisTableBody');
-            tableBody.innerHTML = '';
+            // 年度ヘッダーを更新
+            const sortedReturns = data.total_returns.annual_returns.sort((a, b) => b.year - a.year);
+            if (sortedReturns.length >= 1) {
+                document.getElementById('year1Header').textContent = `${sortedReturns[0].year}年度`;
+            }
+            if (sortedReturns.length >= 2) {
+                document.getElementById('year2Header').textContent = `${sortedReturns[1].year}年度`;
+            }
+            if (sortedReturns.length >= 3) {
+                document.getElementById('year3Header').textContent = `${sortedReturns[2].year}年度`;
+            }
             
-            data.total_returns.annual_returns.forEach(yearData => {
-                // 配当行
-                const dividendRow = document.createElement('tr');
-                dividendRow.innerHTML = `
-                    <td class="year-header">${yearData.year}年度</td>
-                    <td>配当</td>
-                    <td class="amount">$${yearData.dividend_amount.toLocaleString()}</td>
-                    <td class="percentage positive">${yearData.dividend_yield.toFixed(2)}%</td>
-                    <td>$${yearData.dividend_amount.toLocaleString()} ÷ $${data.market_cap.toLocaleString()} × 100</td>
-                `;
-                tableBody.appendChild(dividendRow);
-                
-                // 自社株買い行
-                const buybackAmount = data.buyback_yields.annual_yields.find(b => b.year === yearData.year)?.amount || 0;
-                const buybackRow = document.createElement('tr');
-                buybackRow.innerHTML = `
-                    <td></td>
-                    <td>自社株買い</td>
-                    <td class="amount">$${buybackAmount.toLocaleString()}</td>
-                    <td class="percentage positive">${yearData.buyback_yield.toFixed(2)}%</td>
-                    <td>$${buybackAmount.toLocaleString()} ÷ $${data.market_cap.toLocaleString()} × 100</td>
-                `;
-                tableBody.appendChild(buybackRow);
-                
-                // 合計行
-                const totalRow = document.createElement('tr');
-                totalRow.innerHTML = `
-                    <td></td>
-                    <td><strong>総合株主還元率</strong></td>
-                    <td class="amount"><strong>-</strong></td>
-                    <td class="percentage positive highlight"><strong>${yearData.total_return.toFixed(2)}%</strong></td>
-                    <td><strong>${yearData.dividend_yield.toFixed(2)}% + ${yearData.buyback_yield.toFixed(2)}%</strong></td>
-                `;
-                totalRow.classList.add('highlight');
-                tableBody.appendChild(totalRow);
+            // データを年度別に整理
+            const yearData = {};
+            sortedReturns.forEach(returnData => {
+                yearData[returnData.year] = {
+                    dividend_amount: returnData.dividend_amount,
+                    dividend_yield: returnData.dividend_yield,
+                    buyback_yield: returnData.buyback_yield,
+                    total_return: returnData.total_return,
+                    buyback_amount: data.buyback_yields.annual_yields.find(b => b.year === returnData.year)?.amount || 0
+                };
             });
+            
+            // 横軸テーブルに値を設定
+            const years = sortedReturns.map(r => r.year);
+            
+            // 配当総額
+            if (years[0]) document.getElementById(`dividend-amount-${years[0]}`).textContent = `$${yearData[years[0]].dividend_amount.toLocaleString()}`;
+            if (years[1]) document.getElementById(`dividend-amount-${years[1]}`).textContent = `$${yearData[years[1]].dividend_amount.toLocaleString()}`;
+            if (years[2]) document.getElementById(`dividend-amount-${years[2]}`).textContent = `$${yearData[years[2]].dividend_amount.toLocaleString()}`;
+            
+            // 配当利回り
+            if (years[0]) document.getElementById(`dividend-yield-${years[0]}`).textContent = `${yearData[years[0]].dividend_yield.toFixed(2)}%`;
+            if (years[1]) document.getElementById(`dividend-yield-${years[1]}`).textContent = `${yearData[years[1]].dividend_yield.toFixed(2)}%`;
+            if (years[2]) document.getElementById(`dividend-yield-${years[2]}`).textContent = `${yearData[years[2]].dividend_yield.toFixed(2)}%`;
+            
+            // 自社株買い額
+            if (years[0]) document.getElementById(`buyback-amount-${years[0]}`).textContent = `$${yearData[years[0]].buyback_amount.toLocaleString()}`;
+            if (years[1]) document.getElementById(`buyback-amount-${years[1]}`).textContent = `$${yearData[years[1]].buyback_amount.toLocaleString()}`;
+            if (years[2]) document.getElementById(`buyback-amount-${years[2]}`).textContent = `$${yearData[years[2]].buyback_amount.toLocaleString()}`;
+            
+            // 自社株買い相当利回り
+            if (years[0]) document.getElementById(`buyback-yield-${years[0]}`).textContent = `${yearData[years[0]].buyback_yield.toFixed(2)}%`;
+            if (years[1]) document.getElementById(`buyback-yield-${years[1]}`).textContent = `${yearData[years[1]].buyback_yield.toFixed(2)}%`;
+            if (years[2]) document.getElementById(`buyback-yield-${years[2]}`).textContent = `${yearData[years[2]].buyback_yield.toFixed(2)}%`;
+            
+            // 総合株主還元率
+            if (years[0]) document.getElementById(`total-return-${years[0]}`).innerHTML = `<strong>${yearData[years[0]].total_return.toFixed(2)}%</strong>`;
+            if (years[1]) document.getElementById(`total-return-${years[1]}`).innerHTML = `<strong>${yearData[years[1]].total_return.toFixed(2)}%</strong>`;
+            if (years[2]) document.getElementById(`total-return-${years[2]}`).innerHTML = `<strong>${yearData[years[2]].total_return.toFixed(2)}%</strong>`;
             
             document.getElementById('results').style.display = 'block';
         }

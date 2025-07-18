@@ -14,6 +14,16 @@ CORS(app)
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health_check():
+    """ヘルスチェック用エンドポイント"""
+    from datetime import datetime
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'message': 'Stock analysis app is running'
+    })
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
     try:
