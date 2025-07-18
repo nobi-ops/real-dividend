@@ -440,7 +440,6 @@
                 { label: '売上高', key: 'total_revenue', format: 'currency', class: 'amount revenue-row' },
                 { label: '営業キャッシュフロー', key: 'operating_cash_flow', format: 'currency', class: 'amount revenue-row' },
                 { label: 'OCF/売上比率', key: 'ocf_ratio', format: 'percentage', class: 'percentage positive revenue-row' },
-                { label: 'ROI（総資産利益率）', key: 'roi', format: 'percentage', class: 'percentage positive revenue-row' },
                 { label: '配当総額', key: 'dividend_amount', format: 'currency', class: 'amount' },
                 { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },
@@ -450,7 +449,8 @@
                 { label: '債務発行額', key: 'debt_issuance', format: 'currency', class: 'amount' },
                 { label: '債務返済額', key: 'debt_repayment', format: 'currency', class: 'amount' },
                 { label: '総合株主還元率（CapEx除く）', key: 'total_return_without_capex', format: 'percentage', class: 'percentage highlight positive', highlight: true },
-                { label: '総合株主還元率（CapEx含む）', key: 'total_return_with_capex', format: 'percentage', class: 'percentage highlight positive', highlight: true }
+                { label: '総合株主還元率（CapEx含む）', key: 'total_return_with_capex', format: 'percentage', class: 'percentage highlight positive', highlight: true },
+                { label: 'ROI（総資産利益率）', key: 'roi', format: 'percentage', class: 'percentage positive revenue-row' }
             ];
             
             tableBody.innerHTML = '';
