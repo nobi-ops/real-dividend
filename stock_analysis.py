@@ -14,7 +14,26 @@ class StockAnalyzer:
     def get_stock_data(self, ticker):
         """ティッカーコードから株式データを取得"""
         try:
-            stock = yf.Ticker(ticker)
+            # 国際株対応: .JKなどのサフィックス自動検索
+            possible_tickers = [ticker, f"{ticker}.JK", f"{ticker}.T", f"{ticker}.L", f"{ticker}.HK"]
+            
+            stock = None
+            working_ticker = ticker
+            
+            for test_ticker in possible_tickers:
+                try:
+                    test_stock = yf.Ticker(test_ticker)
+                    test_info = test_stock.info
+                    if test_info.get('longName') or test_info.get('shortName'):
+                        stock = test_stock
+                        working_ticker = test_ticker
+                        break
+                except:
+                    continue
+            
+            if not stock:
+                stock = yf.Ticker(ticker)
+                
             info = stock.info
             
             # 基本情報を取得
@@ -27,13 +46,16 @@ class StockAnalyzer:
             dividend_rate = info.get('dividendRate', 0)
             
             return {
-                'ticker': ticker,
+                'ticker': working_ticker,  # 実際に使用されたティッカー
+                'original_ticker': ticker,  # 元のティッカー
                 'company_name': info.get('longName', 'N/A'),
                 'market_cap': market_cap,
                 'current_price': current_price,
                 'shares_outstanding': shares_outstanding,
                 'dividend_yield': dividend_yield,
                 'dividend_rate': dividend_rate,
+                'country': info.get('country', 'N/A'),
+                'currency': info.get('currency', 'USD'),
                 'info': info
             }
         except Exception as e:
@@ -263,9 +285,12 @@ class StockAnalyzer:
         # 結果表示
         print(f"\n=== 基本情報 ===")
         print(f"企業名: {stock_data['company_name']}")
-        print(f"現在株価: ${stock_data['current_price']:.2f}")
-        print(f"時価総額: ${stock_data['market_cap']:,}")
-        print(f"現在の年間配当額: ${stock_data['dividend_rate']:.2f}")
+        print(f"ティッカー: {stock_data['ticker']} (入力: {stock_data['original_ticker']})")
+        print(f"国: {stock_data['country']}")
+        print(f"通貨: {stock_data['currency']}")
+        print(f"現在株価: {stock_data['current_price']:.2f} {stock_data['currency']}")
+        print(f"時価総額: {stock_data['market_cap']:,} {stock_data['currency']}")
+        print(f"現在の年間配当額: {stock_data['dividend_rate']:.2f} {stock_data['currency']}")
         print(f"現在の配当利回り: {current_dividend_yield:.2f}%")
         
         print(f"\n=== 過去3年間の詳細分析 ===")
