@@ -213,6 +213,16 @@
             color: #495057;
         }
 
+        .capex-row {
+            background: #f0f8ff !important;
+            font-style: italic;
+        }
+
+        .capex-row .row-header {
+            background: #e6f3ff !important;
+            color: #2c5aa0;
+        }
+
         @media (max-width: 768px) {
             .search-form {
                 flex-direction: column;
@@ -312,9 +322,11 @@
                 <div id="calculationDetails">
                     <p style="margin: 5px 0;"><strong>配当利回り</strong> = 年間配当総額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>自社株買い相当利回り</strong> = 年間自社株買い額 ÷ 現在時価総額 × 100</p>
+                    <p style="margin: 5px 0; color: #2c5aa0;"><strong>CapEx相当利回り</strong> = 年間設備投資額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>総合株主還元率</strong> = 配当利回り + 自社株買い相当利回り</p>
                     <p style="margin: 10px 0 5px 0; color: #6c757d; font-size: 14px;">
-                        ※ すべて現在の時価総額で計算しているため、年度ごとの比較が可能です
+                        ※ すべて現在の時価総額で計算しているため、年度ごとの比較が可能です<br>
+                        ※ CapEx相当利回りは将来への投資として参考値で表示（総合株主還元率には含めません）
                     </p>
                 </div>
             </div>
@@ -374,12 +386,17 @@
             const sortedReturns = data.total_returns.annual_returns.sort((a, b) => b.year - a.year);
             const yearData = {};
             sortedReturns.forEach(returnData => {
+                const buybackData = data.buyback_yields.annual_yields.find(b => b.year === returnData.year);
+                const capexData = data.capex_yields ? data.capex_yields.annual_yields.find(c => c.year === returnData.year) : null;
+                
                 yearData[returnData.year] = {
                     dividend_amount: returnData.dividend_amount,
                     dividend_yield: returnData.dividend_yield,
                     buyback_yield: returnData.buyback_yield,
                     total_return: returnData.total_return,
-                    buyback_amount: data.buyback_yields.annual_yields.find(b => b.year === returnData.year)?.amount || 0
+                    buyback_amount: buybackData?.amount || 0,
+                    capex_amount: capexData?.amount || 0,
+                    capex_yield: capexData?.yield || 0
                 };
             });
             
@@ -398,6 +415,8 @@
                 { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },
                 { label: '自社株買い相当利回り', key: 'buyback_yield', format: 'percentage', class: 'percentage positive' },
+                { label: '設備投資額 (CapEx)', key: 'capex_amount', format: 'currency', class: 'amount capex-row' },
+                { label: 'CapEx相当利回り', key: 'capex_yield', format: 'percentage', class: 'percentage positive capex-row' },
                 { label: '総合株主還元率', key: 'total_return', format: 'percentage', class: 'percentage highlight positive', highlight: true }
             ];
             
@@ -406,10 +425,11 @@
             metrics.forEach(metric => {
                 const row = document.createElement('tr');
                 if (metric.highlight) row.classList.add('highlight-row');
+                if (metric.class && metric.class.includes('capex-row')) row.classList.add('capex-row');
                 
                 // 項目名
                 const labelCell = document.createElement('td');
-                labelCell.className = 'row-header';
+                labelCell.className = metric.class && metric.class.includes('capex-row') ? 'row-header capex-row' : 'row-header';
                 labelCell.innerHTML = metric.highlight ? `<strong>${metric.label}</strong>` : metric.label;
                 row.appendChild(labelCell);
                 

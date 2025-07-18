@@ -141,6 +141,68 @@ class StockAnalyzer:
             print(f"財務データの取得に失敗: {e}")
             return {'latest': 0, 'three_year_avg': 0, 'annual_data': []}
     
+    def get_capex_data(self, ticker):
+        """Capital Expenditure（設備投資）データを取得"""
+        try:
+            stock = yf.Ticker(ticker)
+            cashflow = stock.cashflow
+            
+            capex_data = {
+                'latest': 0,
+                'three_year_avg': 0,
+                'annual_data': []
+            }
+            
+            if cashflow is not None and not cashflow.empty:
+                print(f"  Capital Expenditure取得:")
+                
+                # CapExの項目を探す
+                capex_keys = [
+                    'Capital Expenditure',
+                    'Capital Expenditures',
+                    'Purchase Of Property Plant Equipment',
+                    'Capex',
+                    'Purchase of Property, Plant and Equipment'
+                ]
+                
+                found_key = None
+                for key in capex_keys:
+                    if key in cashflow.index:
+                        found_key = key
+                        print(f"    項目: '{key}' を使用")
+                        
+                        # 過去3年分のCapExデータを取得
+                        annual_amounts = []
+                        for i, (date, value) in enumerate(cashflow.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    # CapExは通常負の値で記録されるため絶対値を取る
+                                    amount = abs(value)
+                                    annual_amounts.append(amount)
+                                    capex_data['annual_data'].append({
+                                        'year': date.year,
+                                        'amount': amount
+                                    })
+                                    print(f"    {date.year}: ${amount:,.0f}")
+                        
+                        if annual_amounts:
+                            capex_data['latest'] = annual_amounts[0]
+                            capex_data['three_year_avg'] = sum(annual_amounts) / len(annual_amounts)
+                            
+                            print(f"  → 最新年CapEx: ${capex_data['latest']:,.0f}")
+                            print(f"  → 3年平均CapEx: ${capex_data['three_year_avg']:,.0f}")
+                        
+                        break
+                
+                if not found_key:
+                    print(f"    CapExデータが見つかりませんでした")
+            
+            return capex_data
+            
+        except Exception as e:
+            print(f"CapExデータの取得に失敗: {e}")
+            return {'latest': 0, 'three_year_avg': 0, 'annual_data': []}
+    
     def get_dividend_history(self, ticker):
         """過去3年分の配当履歴を取得"""
         try:
@@ -245,6 +307,35 @@ class StockAnalyzer:
         
         return {'annual_yields': annual_yields}
     
+    def calculate_capex_equivalent_yield(self, stock_data, capex_data):
+        """CapEx相当配当率を計算（過去3年分個別）"""
+        market_cap = stock_data.get('market_cap', 0)
+        
+        if market_cap == 0:
+            return {'annual_yields': []}
+        
+        annual_yields = []
+        
+        # 計算詳細を表示
+        print(f"  CapEx相当利回り計算:")
+        print(f"    現在の時価総額: ${market_cap:,.0f}")
+        print(f"")
+        
+        for data in capex_data['annual_data']:
+            year = data['year']
+            amount = data['amount']
+            yield_rate = (amount / market_cap) * 100
+            
+            annual_yields.append({
+                'year': year,
+                'amount': amount,
+                'yield': yield_rate
+            })
+            
+            print(f"    {year}年CapEx: ${amount:,.0f} ÷ ${market_cap:,.0f} × 100 = {yield_rate:.2f}%")
+        
+        return {'annual_yields': annual_yields}
+    
     def calculate_total_shareholder_return(self, market_cap, dividend_data, buyback_yields):
         """総合株主還元率を計算（過去3年分個別）"""
         annual_returns = []
@@ -288,9 +379,13 @@ class StockAnalyzer:
         # 配当履歴取得
         dividend_data = self.get_dividend_history(ticker)
         
+        # CapExデータ取得
+        capex_data = self.get_capex_data(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield(stock_data, repurchase_data)
+        capex_yields = self.calculate_capex_equivalent_yield(stock_data, capex_data)
         total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields)
         
         # 結果表示
@@ -320,6 +415,15 @@ class StockAnalyzer:
                     buyback_amount = buyback_data['amount']
                     break
             
+            # その年のCapEx額と利回りを取得
+            capex_amount = 0
+            capex_yield = 0
+            for capex_data_item in capex_yields['annual_yields']:
+                if capex_data_item['year'] == year:
+                    capex_amount = capex_data_item['amount']
+                    capex_yield = capex_data_item['yield']
+                    break
+            
             print(f"\n【{year}年度】")
             print(f"  配当:")
             print(f"    年間配当総額: ${dividend_amount:,.0f}")
@@ -329,8 +433,13 @@ class StockAnalyzer:
             print(f"    自社株買い額: ${buyback_amount:,.0f}")
             print(f"    自社株買い相当利回り: {buyback_yield:.2f}%")
             print(f"    計算根拠: ${buyback_amount:,.0f} ÷ ${stock_data['market_cap']:,.0f} × 100")
+            print(f"  設備投資 (CapEx):")
+            print(f"    設備投資額: ${capex_amount:,.0f}")
+            print(f"    CapEx相当利回り: {capex_yield:.2f}%")
+            print(f"    計算根拠: ${capex_amount:,.0f} ÷ ${stock_data['market_cap']:,.0f} × 100")
             print(f"  総合:")
             print(f"    総合株主還元率: {div_yield:.2f}% + {buyback_yield:.2f}% = {total:.2f}%")
+            print(f"    (注: CapEx相当利回りは参考値のため総合には含めず)")
         
         return {
             'ticker': ticker,
@@ -342,6 +451,8 @@ class StockAnalyzer:
             'dividend_data': dividend_data,
             'repurchase_data': repurchase_data,
             'buyback_yields': buyback_yields,
+            'capex_data': capex_data,
+            'capex_yields': capex_yields,
             'total_returns': total_returns
         }
     
@@ -358,9 +469,13 @@ class StockAnalyzer:
         # 配当履歴取得（出力を抑制）
         dividend_data = self.get_dividend_history_silent(ticker)
         
+        # CapExデータ取得（出力を抑制）
+        capex_data = self.get_capex_data_silent(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
+        capex_yields = self.calculate_capex_equivalent_yield_silent(stock_data, capex_data)
         total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields)
         
         return {
@@ -373,6 +488,8 @@ class StockAnalyzer:
             'dividend_data': dividend_data,
             'repurchase_data': repurchase_data,
             'buyback_yields': buyback_yields,
+            'capex_data': capex_data,
+            'capex_yields': capex_yields,
             'total_returns': total_returns
         }
     
@@ -482,6 +599,72 @@ class StockAnalyzer:
         annual_yields = []
         
         for data in repurchase_data['annual_data']:
+            year = data['year']
+            amount = data['amount']
+            yield_rate = (amount / market_cap) * 100
+            
+            annual_yields.append({
+                'year': year,
+                'amount': amount,
+                'yield': yield_rate
+            })
+        
+        return {'annual_yields': annual_yields}
+    
+    def get_capex_data_silent(self, ticker):
+        """Capital Expenditure（設備投資）データを取得（出力なし）"""
+        try:
+            stock = yf.Ticker(ticker)
+            cashflow = stock.cashflow
+            
+            capex_data = {
+                'latest': 0,
+                'three_year_avg': 0,
+                'annual_data': []
+            }
+            
+            if cashflow is not None and not cashflow.empty:
+                capex_keys = [
+                    'Capital Expenditure',
+                    'Capital Expenditures',
+                    'Purchase Of Property Plant Equipment',
+                    'Capex',
+                    'Purchase of Property, Plant and Equipment'
+                ]
+                
+                for key in capex_keys:
+                    if key in cashflow.index:
+                        annual_amounts = []
+                        for i, (date, value) in enumerate(cashflow.loc[key].items()):
+                            if i < 3:  # 過去3年分
+                                if pd.notna(value):
+                                    amount = abs(value)
+                                    annual_amounts.append(amount)
+                                    capex_data['annual_data'].append({
+                                        'year': date.year,
+                                        'amount': amount
+                                    })
+                        
+                        if annual_amounts:
+                            capex_data['latest'] = annual_amounts[0]
+                            capex_data['three_year_avg'] = sum(annual_amounts) / len(annual_amounts)
+                        break
+            
+            return capex_data
+            
+        except Exception as e:
+            return {'latest': 0, 'three_year_avg': 0, 'annual_data': []}
+    
+    def calculate_capex_equivalent_yield_silent(self, stock_data, capex_data):
+        """CapEx相当配当率を計算（出力なし）"""
+        market_cap = stock_data.get('market_cap', 0)
+        
+        if market_cap == 0:
+            return {'annual_yields': []}
+        
+        annual_yields = []
+        
+        for data in capex_data['annual_data']:
             year = data['year']
             amount = data['amount']
             yield_rate = (amount / market_cap) * 100
