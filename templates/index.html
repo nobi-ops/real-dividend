@@ -549,37 +549,110 @@
                     return;
                 }
                 
-                data.stocks.forEach(stock => {
-                    const stockDiv = document.createElement('div');
-                    stockDiv.className = 'company-info';
-                    stockDiv.style.marginBottom = '15px';
-                    stockDiv.style.cursor = 'pointer';
-                    
-                    const lastUpdated = new Date(stock.last_updated).toLocaleDateString('ja-JP');
-                    
-                    stockDiv.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <h3 style="margin: 0; color: #2d3748;">${stock.ticker}</h3>
-                                <p style="margin: 5px 0; color: #6c757d;">${stock.company_name}</p>
-                                <p style="margin: 5px 0; font-size: 14px; color: #6c757d;">
-                                    ${stock.country} | $${stock.current_price?.toFixed(2) || 'N/A'} | 配当利回り: ${stock.current_dividend_yield?.toFixed(2) || 'N/A'}%
-                                </p>
-                                <p style="margin: 5px 0; font-size: 12px; color: #adb5bd;">更新: ${lastUpdated}</p>
+                // 各銘柄の詳細データを取得して表示
+                for (const stock of data.stocks) {
+                    try {
+                        // 詳細データを取得
+                        const detailResponse = await fetch(`/api/database/stock/${stock.ticker}`);
+                        const stockDetail = await detailResponse.json();
+                        
+                        const stockDiv = document.createElement('div');
+                        stockDiv.className = 'company-info';
+                        stockDiv.style.marginBottom = '15px';
+                        stockDiv.style.cursor = 'pointer';
+                        
+                        const lastUpdated = new Date(stock.last_updated).toLocaleDateString('ja-JP');
+                        
+                        // 最新年度のデータを取得
+                        const latestYearData = stockDetail.annual_data && stockDetail.annual_data.length > 0 
+                            ? stockDetail.annual_data[0] 
+                            : null;
+                        
+                        // 指標を表示するためのデータを準備
+                        const metrics = {
+                            currentDividendYield: stock.current_dividend_yield || 0,
+                            buybackYield: latestYearData?.buyback_yield || 0,
+                            totalReturnWithoutCapex: latestYearData?.total_return_without_capex || 0,
+                            totalReturnWithCapex: latestYearData?.total_return_with_capex || 0
+                        };
+                        
+                        stockDiv.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <h3 style="margin: 0; color: #2d3748;">${stock.ticker}</h3>
+                                    <p style="margin: 5px 0; color: #6c757d;">${stock.company_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px; color: #6c757d;">
+                                        ${stock.country} | $${stock.current_price?.toFixed(2) || 'N/A'}
+                                    </p>
+                                    <div style="margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                                            <div>
+                                                <span style="color: #6c757d;">現在配当利回り:</span>
+                                                <span style="color: #28a745; font-weight: bold;">${metrics.currentDividendYield.toFixed(2)}%</span>
+                                            </div>
+                                            <div>
+                                                <span style="color: #6c757d;">自社株買い相当利回り:</span>
+                                                <span style="color: #28a745; font-weight: bold;">${metrics.buybackYield.toFixed(2)}%</span>
+                                            </div>
+                                            <div>
+                                                <span style="color: #6c757d;">総合還元率(CapEx除く):</span>
+                                                <span style="color: #17a2b8; font-weight: bold;">${metrics.totalReturnWithoutCapex.toFixed(2)}%</span>
+                                            </div>
+                                            <div>
+                                                <span style="color: #6c757d;">総合還元率(CapEx含む):</span>
+                                                <span style="color: #17a2b8; font-weight: bold;">${metrics.totalReturnWithCapex.toFixed(2)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p style="margin: 5px 0; font-size: 12px; color: #adb5bd;">更新: ${lastUpdated}</p>
+                                </div>
+                                <div style="margin-left: 15px;">
+                                    <button onclick="viewStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; margin-right: 5px;">
+                                        📊 表示
+                                    </button>
+                                    <button onclick="deleteStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; background: #dc3545;">
+                                        🗑️ 削除
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <button onclick="viewStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; margin-right: 5px;">
-                                    📊 表示
-                                </button>
-                                <button onclick="deleteStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; background: #dc3545;">
-                                    🗑️ 削除
-                                </button>
+                        `;
+                        
+                        stockList.appendChild(stockDiv);
+                        
+                    } catch (error) {
+                        console.error(`${stock.ticker}の詳細データ取得エラー:`, error);
+                        
+                        // エラーの場合は基本情報のみ表示
+                        const stockDiv = document.createElement('div');
+                        stockDiv.className = 'company-info';
+                        stockDiv.style.marginBottom = '15px';
+                        
+                        const lastUpdated = new Date(stock.last_updated).toLocaleDateString('ja-JP');
+                        
+                        stockDiv.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="margin: 0; color: #2d3748;">${stock.ticker}</h3>
+                                    <p style="margin: 5px 0; color: #6c757d;">${stock.company_name}</p>
+                                    <p style="margin: 5px 0; font-size: 14px; color: #6c757d;">
+                                        ${stock.country} | $${stock.current_price?.toFixed(2) || 'N/A'} | 配当利回り: ${stock.current_dividend_yield?.toFixed(2) || 'N/A'}%
+                                    </p>
+                                    <p style="margin: 5px 0; font-size: 12px; color: #adb5bd;">更新: ${lastUpdated}</p>
+                                </div>
+                                <div>
+                                    <button onclick="viewStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; margin-right: 5px;">
+                                        📊 表示
+                                    </button>
+                                    <button onclick="deleteStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; background: #dc3545;">
+                                        🗑️ 削除
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    
-                    stockList.appendChild(stockDiv);
-                });
+                        `;
+                        
+                        stockList.appendChild(stockDiv);
+                    }
+                }
                 
             } catch (error) {
                 console.error('データベース読み込みエラー:', error);
