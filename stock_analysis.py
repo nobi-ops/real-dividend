@@ -306,7 +306,7 @@ class StockAnalyzer:
         
         return {'annual_yields': annual_yields}
     
-    def calculate_total_shareholder_return(self, market_cap, dividend_data, buyback_yields, capex_yields):
+    def calculate_total_shareholder_return(self, market_cap, dividend_data, buyback_yields, capex_yields, revenue_cashflow_data=None):
         """総合株主還元率を計算（配当+自社株買い+CapEx）"""
         annual_returns = []
         
@@ -324,6 +324,11 @@ class StockAnalyzer:
         # CapExデータの年度を追加
         for capex_data in capex_yields['annual_yields']:
             years_with_data.add(capex_data['year'])
+            
+        # Revenue/Cash Flowデータがある場合は、その年度も追加
+        if revenue_cashflow_data:
+            for rev_data in revenue_cashflow_data['annual_data']:
+                years_with_data.add(rev_data['year'])
         
         # 各年度について計算
         for year in sorted(years_with_data, reverse=True):
@@ -389,7 +394,7 @@ class StockAnalyzer:
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield(stock_data, repurchase_data)
         capex_yields = self.calculate_capex_equivalent_yield(stock_data, capex_data)
-        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields)
+        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields, revenue_cashflow_data)
         
         # 結果表示
         print(f"\n=== 基本情報 ===")
@@ -482,7 +487,7 @@ class StockAnalyzer:
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
         capex_yields = self.calculate_capex_equivalent_yield_silent(stock_data, capex_data)
-        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields)
+        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields, revenue_cashflow_data)
         
         return {
             'ticker': ticker,
