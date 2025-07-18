@@ -333,11 +333,11 @@
                 <div id="calculationDetails">
                     <p style="margin: 5px 0;"><strong>配当利回り</strong> = 年間配当総額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>自社株買い相当利回り</strong> = 年間自社株買い額 ÷ 現在時価総額 × 100</p>
-                    <p style="margin: 5px 0; color: #2c5aa0;"><strong>CapEx相当利回り</strong> = 年間設備投資額 ÷ 現在時価総額 × 100</p>
-                    <p style="margin: 5px 0;"><strong>総合株主還元率</strong> = 配当利回り + 自社株買い相当利回り</p>
+                    <p style="margin: 5px 0;"><strong>CapEx相当利回り</strong> = 年間設備投資額 ÷ 現在時価総額 × 100</p>
+                    <p style="margin: 5px 0; font-weight: bold;"><strong>総合株主還元率</strong> = 配当利回り + 自社株買い相当利回り + CapEx相当利回り</p>
                     <p style="margin: 10px 0 5px 0; color: #6c757d; font-size: 14px;">
                         ※ すべて現在の時価総額で計算しているため、年度ごとの比較が可能です<br>
-                        ※ CapEx相当利回りは将来への投資として参考値で表示（総合株主還元率には含めません）<br>
+                        ※ CapExも含めることで、将来への投資による株主価値創造も評価<br>
                         ※ データはYahoo Finance APIから取得しており、ウェブサイト表示と異なる場合があります
                     </p>
                 </div>
@@ -434,8 +434,8 @@
                 { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },
                 { label: '自社株買い相当利回り', key: 'buyback_yield', format: 'percentage', class: 'percentage positive' },
-                { label: '設備投資額 (CapEx)', key: 'capex_amount', format: 'currency', class: 'amount capex-row' },
-                { label: 'CapEx相当利回り', key: 'capex_yield', format: 'percentage', class: 'percentage positive capex-row' },
+                { label: '設備投資額 (CapEx)', key: 'capex_amount', format: 'currency', class: 'amount' },
+                { label: 'CapEx相当利回り', key: 'capex_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '総合株主還元率', key: 'total_return', format: 'percentage', class: 'percentage highlight positive', highlight: true }
             ];
             
@@ -444,13 +444,11 @@
             metrics.forEach(metric => {
                 const row = document.createElement('tr');
                 if (metric.highlight) row.classList.add('highlight-row');
-                if (metric.class && metric.class.includes('capex-row')) row.classList.add('capex-row');
                 if (metric.class && metric.class.includes('revenue-row')) row.classList.add('revenue-row');
                 
                 // 項目名
                 const labelCell = document.createElement('td');
                 let labelClass = 'row-header';
-                if (metric.class && metric.class.includes('capex-row')) labelClass += ' capex-row';
                 if (metric.class && metric.class.includes('revenue-row')) labelClass += ' revenue-row';
                 labelCell.className = labelClass;
                 labelCell.innerHTML = metric.highlight ? `<strong>${metric.label}</strong>` : metric.label;

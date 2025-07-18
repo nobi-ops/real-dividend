@@ -306,11 +306,11 @@ class StockAnalyzer:
         
         return {'annual_yields': annual_yields}
     
-    def calculate_total_shareholder_return(self, market_cap, dividend_data, buyback_yields):
-        """総合株主還元率を計算（過去3年分個別）"""
+    def calculate_total_shareholder_return(self, market_cap, dividend_data, buyback_yields, capex_yields):
+        """総合株主還元率を計算（配当+自社株買い+CapEx）"""
         annual_returns = []
         
-        # 配当データがある年度をベースにする（自社株買いがない場合に対応）
+        # データがある年度をベースにする
         years_with_data = set()
         
         # 配当データの年度を追加
@@ -320,6 +320,10 @@ class StockAnalyzer:
         # 自社株買いデータの年度を追加
         for buyback_data in buyback_yields['annual_yields']:
             years_with_data.add(buyback_data['year'])
+            
+        # CapExデータの年度を追加
+        for capex_data in capex_yields['annual_yields']:
+            years_with_data.add(capex_data['year'])
         
         # 各年度について計算
         for year in sorted(years_with_data, reverse=True):
@@ -337,15 +341,24 @@ class StockAnalyzer:
                     buyback_yield = buyback_data['yield']
                     break
             
+            # その年のCapExデータを探す
+            capex_yield = 0
+            for capex_data in capex_yields['annual_yields']:
+                if capex_data['year'] == year:
+                    capex_yield = capex_data['yield']
+                    break
+            
             # 配当利回りを計算
             dividend_yield = (dividend_amount / market_cap) * 100 if market_cap > 0 else 0
             
-            total_return = dividend_yield + buyback_yield
+            # 総合株主還元率 = 配当利回り + 自社株買い利回り + CapEx利回り
+            total_return = dividend_yield + buyback_yield + capex_yield
             annual_returns.append({
                 'year': year,
                 'dividend_amount': dividend_amount,
                 'dividend_yield': dividend_yield,
                 'buyback_yield': buyback_yield,
+                'capex_yield': capex_yield,
                 'total_return': total_return
             })
         
@@ -376,7 +389,7 @@ class StockAnalyzer:
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield(stock_data, repurchase_data)
         capex_yields = self.calculate_capex_equivalent_yield(stock_data, capex_data)
-        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields)
+        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields)
         
         # 結果表示
         print(f"\n=== 基本情報 ===")
@@ -428,8 +441,8 @@ class StockAnalyzer:
             print(f"    CapEx相当利回り: {capex_yield:.2f}%")
             print(f"    計算根拠: ${capex_amount:,.0f} ÷ ${stock_data['market_cap']:,.0f} × 100")
             print(f"  総合:")
-            print(f"    総合株主還元率: {div_yield:.2f}% + {buyback_yield:.2f}% = {total:.2f}%")
-            print(f"    (注: CapEx相当利回りは参考値のため総合には含めず)")
+            print(f"    総合株主還元率: {div_yield:.2f}% + {buyback_yield:.2f}% + {capex_yield:.2f}% = {total:.2f}%")
+            print(f"    (配当 + 自社株買い + 設備投資による株主価値創造)")
         
         return {
             'ticker': ticker,
@@ -469,7 +482,7 @@ class StockAnalyzer:
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
         capex_yields = self.calculate_capex_equivalent_yield_silent(stock_data, capex_data)
-        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields)
+        total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields)
         
         return {
             'ticker': ticker,
