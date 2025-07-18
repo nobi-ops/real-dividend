@@ -223,6 +223,17 @@
             color: #2c5aa0;
         }
 
+        .revenue-row {
+            background: #f0fff0 !important;
+            font-weight: 500;
+        }
+
+        .revenue-row .row-header {
+            background: #e8f5e8 !important;
+            color: #2d5a2d;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
             .search-form {
                 flex-direction: column;
@@ -389,8 +400,12 @@
             sortedReturns.forEach(returnData => {
                 const buybackData = data.buyback_yields.annual_yields.find(b => b.year === returnData.year);
                 const capexData = data.capex_yields ? data.capex_yields.annual_yields.find(c => c.year === returnData.year) : null;
+                const revenueData = data.revenue_cashflow_data ? data.revenue_cashflow_data.annual_data.find(r => r.year === returnData.year) : null;
                 
                 yearData[returnData.year] = {
+                    total_revenue: revenueData?.total_revenue || 0,
+                    operating_cash_flow: revenueData?.operating_cash_flow || 0,
+                    ocf_ratio: revenueData?.ocf_ratio || 0,
                     dividend_amount: returnData.dividend_amount,
                     dividend_yield: returnData.dividend_yield,
                     buyback_yield: returnData.buyback_yield,
@@ -412,6 +427,9 @@
             
             // テーブル行を生成
             const metrics = [
+                { label: '売上高', key: 'total_revenue', format: 'currency', class: 'amount revenue-row' },
+                { label: '営業キャッシュフロー', key: 'operating_cash_flow', format: 'currency', class: 'amount revenue-row' },
+                { label: 'OCF/売上比率', key: 'ocf_ratio', format: 'percentage', class: 'percentage positive revenue-row' },
                 { label: '配当総額', key: 'dividend_amount', format: 'currency', class: 'amount' },
                 { label: '配当利回り', key: 'dividend_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '自社株買い額', key: 'buyback_amount', format: 'currency', class: 'amount' },
@@ -427,10 +445,14 @@
                 const row = document.createElement('tr');
                 if (metric.highlight) row.classList.add('highlight-row');
                 if (metric.class && metric.class.includes('capex-row')) row.classList.add('capex-row');
+                if (metric.class && metric.class.includes('revenue-row')) row.classList.add('revenue-row');
                 
                 // 項目名
                 const labelCell = document.createElement('td');
-                labelCell.className = metric.class && metric.class.includes('capex-row') ? 'row-header capex-row' : 'row-header';
+                let labelClass = 'row-header';
+                if (metric.class && metric.class.includes('capex-row')) labelClass += ' capex-row';
+                if (metric.class && metric.class.includes('revenue-row')) labelClass += ' revenue-row';
+                labelCell.className = labelClass;
                 labelCell.innerHTML = metric.highlight ? `<strong>${metric.label}</strong>` : metric.label;
                 row.appendChild(labelCell);
                 

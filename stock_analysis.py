@@ -369,6 +369,9 @@ class StockAnalyzer:
         # CapExデータ取得
         capex_data = self.get_capex_data(ticker)
         
+        # Revenue & Cash Flowデータ取得
+        revenue_cashflow_data = self.get_revenue_and_cashflow_data(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield(stock_data, repurchase_data)
@@ -459,6 +462,9 @@ class StockAnalyzer:
         # CapExデータ取得（出力を抑制）
         capex_data = self.get_capex_data_silent(ticker)
         
+        # Revenue & Cash Flowデータ取得（出力を抑制）
+        revenue_cashflow_data = self.get_revenue_and_cashflow_data_silent(ticker)
+        
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
         buyback_yields = self.calculate_buyback_equivalent_yield_silent(stock_data, repurchase_data)
@@ -477,6 +483,7 @@ class StockAnalyzer:
             'buyback_yields': buyback_yields,
             'capex_data': capex_data,
             'capex_yields': capex_yields,
+            'revenue_cashflow_data': revenue_cashflow_data,
             'total_returns': total_returns
         }
     
@@ -598,6 +605,93 @@ class StockAnalyzer:
         
         return {'annual_yields': annual_yields}
     
+    def get_revenue_and_cashflow_data(self, ticker):
+        """Total RevenueとOperating Cash Flowデータを取得"""
+        try:
+            stock = yf.Ticker(ticker)
+            
+            # 損益計算書からRevenue取得
+            financials = stock.financials
+            # キャッシュフロー計算書からOperating Cash Flow取得
+            cashflow = stock.cashflow
+            
+            revenue_cashflow_data = {
+                'annual_data': []
+            }
+            
+            print(f"  Revenue & Cash Flow取得:")
+            
+            # 過去3年分のデータを取得
+            if financials is not None and not financials.empty and cashflow is not None and not cashflow.empty:
+                
+                # Revenue項目を探す
+                revenue_keys = [
+                    'Total Revenue',
+                    'Revenue',
+                    'Net Sales',
+                    'Sales'
+                ]
+                
+                # Operating Cash Flow項目を探す
+                ocf_keys = [
+                    'Operating Cash Flow',
+                    'Cash Flow From Operating Activities',
+                    'Net Cash From Operating Activities',
+                    'Cash From Operating Activities'
+                ]
+                
+                revenue_key = None
+                ocf_key = None
+                
+                # Revenue項目を探す
+                for key in revenue_keys:
+                    if key in financials.index:
+                        revenue_key = key
+                        print(f"    Revenue項目: '{key}' を使用")
+                        break
+                
+                # Operating Cash Flow項目を探す
+                for key in ocf_keys:
+                    if key in cashflow.index:
+                        ocf_key = key
+                        print(f"    Operating Cash Flow項目: '{key}' を使用")
+                        break
+                
+                if revenue_key and ocf_key:
+                    # 共通の年度を取得
+                    revenue_data = financials.loc[revenue_key]
+                    ocf_data = cashflow.loc[ocf_key]
+                    
+                    # 過去3年分を処理
+                    for i in range(min(3, len(revenue_data), len(ocf_data))):
+                        rev_date, rev_value = list(revenue_data.items())[i]
+                        ocf_date, ocf_value = list(ocf_data.items())[i]
+                        
+                        # 年度が一致する場合のみ処理
+                        if rev_date.year == ocf_date.year and pd.notna(rev_value) and pd.notna(ocf_value):
+                            # Operating Cash Flow比率を計算
+                            ocf_ratio = (ocf_value / rev_value) * 100 if rev_value != 0 else 0
+                            
+                            revenue_cashflow_data['annual_data'].append({
+                                'year': rev_date.year,
+                                'total_revenue': abs(rev_value),  # Revenueは正の値
+                                'operating_cash_flow': ocf_value,  # OCFは正負どちらもあり得る
+                                'ocf_ratio': ocf_ratio
+                            })
+                            
+                            print(f"    {rev_date.year}: Revenue ${abs(rev_value):,.0f}, OCF ${ocf_value:,.0f}, 比率 {ocf_ratio:.1f}%")
+                else:
+                    if not revenue_key:
+                        print(f"    Revenueデータが見つかりませんでした")
+                    if not ocf_key:
+                        print(f"    Operating Cash Flowデータが見つかりませんでした")
+            
+            return revenue_cashflow_data
+            
+        except Exception as e:
+            print(f"Revenue/Cash Flowデータの取得に失敗: {e}")
+            return {'annual_data': []}
+    
     def get_capex_data_silent(self, ticker):
         """Capital Expenditure（設備投資）データを取得（出力なし）"""
         try:
@@ -663,6 +757,55 @@ class StockAnalyzer:
             })
         
         return {'annual_yields': annual_yields}
+    
+    def get_revenue_and_cashflow_data_silent(self, ticker):
+        """Total RevenueとOperating Cash Flowデータを取得（出力なし）"""
+        try:
+            stock = yf.Ticker(ticker)
+            financials = stock.financials
+            cashflow = stock.cashflow
+            
+            revenue_cashflow_data = {'annual_data': []}
+            
+            if financials is not None and not financials.empty and cashflow is not None and not cashflow.empty:
+                revenue_keys = ['Total Revenue', 'Revenue', 'Net Sales', 'Sales']
+                ocf_keys = ['Operating Cash Flow', 'Cash Flow From Operating Activities', 'Net Cash From Operating Activities', 'Cash From Operating Activities']
+                
+                revenue_key = None
+                ocf_key = None
+                
+                for key in revenue_keys:
+                    if key in financials.index:
+                        revenue_key = key
+                        break
+                
+                for key in ocf_keys:
+                    if key in cashflow.index:
+                        ocf_key = key
+                        break
+                
+                if revenue_key and ocf_key:
+                    revenue_data = financials.loc[revenue_key]
+                    ocf_data = cashflow.loc[ocf_key]
+                    
+                    for i in range(min(3, len(revenue_data), len(ocf_data))):
+                        rev_date, rev_value = list(revenue_data.items())[i]
+                        ocf_date, ocf_value = list(ocf_data.items())[i]
+                        
+                        if rev_date.year == ocf_date.year and pd.notna(rev_value) and pd.notna(ocf_value):
+                            ocf_ratio = (ocf_value / rev_value) * 100 if rev_value != 0 else 0
+                            
+                            revenue_cashflow_data['annual_data'].append({
+                                'year': rev_date.year,
+                                'total_revenue': abs(rev_value),
+                                'operating_cash_flow': ocf_value,
+                                'ocf_ratio': ocf_ratio
+                            })
+            
+            return revenue_cashflow_data
+            
+        except Exception as e:
+            return {'annual_data': []}
 
 def demo():
     """デモ実行関数"""
