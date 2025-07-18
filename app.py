@@ -24,6 +24,11 @@ def health_check():
         'message': 'Stock analysis app is running'
     })
 
+@app.route('/test')
+def test_route():
+    """デプロイテスト用エンドポイント"""
+    return "Deploy test successful"
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
     try:
