@@ -340,9 +340,19 @@ class StockAnalyzer:
         """総合株主還元率を計算（過去3年分個別）"""
         annual_returns = []
         
-        for buyback_data in buyback_yields['annual_yields']:
-            year = buyback_data['year']
+        # 配当データがある年度をベースにする（自社株買いがない場合に対応）
+        years_with_data = set()
+        
+        # 配当データの年度を追加
+        for div_data in dividend_data['annual_data']:
+            years_with_data.add(div_data['year'])
             
+        # 自社株買いデータの年度を追加
+        for buyback_data in buyback_yields['annual_yields']:
+            years_with_data.add(buyback_data['year'])
+        
+        # 各年度について計算
+        for year in sorted(years_with_data, reverse=True):
             # その年の配当データを探す
             dividend_amount = 0
             for div_data in dividend_data['annual_data']:
@@ -350,15 +360,22 @@ class StockAnalyzer:
                     dividend_amount = div_data['amount']
                     break
             
+            # その年の自社株買いデータを探す
+            buyback_yield = 0
+            for buyback_data in buyback_yields['annual_yields']:
+                if buyback_data['year'] == year:
+                    buyback_yield = buyback_data['yield']
+                    break
+            
             # 配当利回りを計算
             dividend_yield = (dividend_amount / market_cap) * 100 if market_cap > 0 else 0
             
-            total_return = dividend_yield + buyback_data['yield']
+            total_return = dividend_yield + buyback_yield
             annual_returns.append({
                 'year': year,
                 'dividend_amount': dividend_amount,
                 'dividend_yield': dividend_yield,
-                'buyback_yield': buyback_data['yield'],
+                'buyback_yield': buyback_yield,
                 'total_return': total_return
             })
         
@@ -463,14 +480,17 @@ class StockAnalyzer:
         if not stock_data:
             return None
         
+        # 実際に使用されたティッカーを使用
+        working_ticker = stock_data['ticker']
+        
         # 自社株買い情報取得（出力を抑制）
-        repurchase_data = self.get_financial_statements_silent(ticker)
+        repurchase_data = self.get_financial_statements_silent(working_ticker)
         
         # 配当履歴取得（出力を抑制）
-        dividend_data = self.get_dividend_history_silent(ticker)
+        dividend_data = self.get_dividend_history_silent(working_ticker)
         
         # CapExデータ取得（出力を抑制）
-        capex_data = self.get_capex_data_silent(ticker)
+        capex_data = self.get_capex_data_silent(working_ticker)
         
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
