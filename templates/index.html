@@ -334,7 +334,8 @@
                     <p style="margin: 5px 0;"><strong>配当利回り</strong> = 年間配当総額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>自社株買い相当利回り</strong> = 年間自社株買い額 ÷ 現在時価総額 × 100</p>
                     <p style="margin: 5px 0;"><strong>CapEx相当利回り</strong> = 年間設備投資額 ÷ 現在時価総額 × 100</p>
-                    <p style="margin: 5px 0; font-weight: bold;"><strong>総合株主還元率</strong> = 配当利回り + 自社株買い相当利回り + CapEx相当利回り</p>
+                    <p style="margin: 5px 0; font-weight: bold;"><strong>総合株主還元率（CapEx除く）</strong> = 配当利回り + 自社株買い相当利回り</p>
+                    <p style="margin: 5px 0; font-weight: bold;"><strong>総合株主還元率（CapEx含む）</strong> = 配当利回り + 自社株買い相当利回り + CapEx相当利回り</p>
                     <p style="margin: 10px 0 5px 0; color: #6c757d; font-size: 14px;">
                         ※ すべて現在の時価総額で計算しているため、年度ごとの比較が可能です<br>
                         ※ CapExも含めることで、将来への投資による株主価値創造も評価<br>
@@ -412,6 +413,8 @@
                     dividend_yield: returnData.dividend_yield,
                     buyback_yield: returnData.buyback_yield,
                     total_return: returnData.total_return,
+                    total_return_with_capex: returnData.total_return_with_capex || returnData.total_return,
+                    total_return_without_capex: returnData.total_return_without_capex || (returnData.dividend_yield + returnData.buyback_yield),
                     buyback_amount: buybackData?.amount || 0,
                     capex_amount: capexData?.amount || 0,
                     capex_yield: capexData?.yield || 0,
@@ -442,7 +445,8 @@
                 { label: 'CapEx相当利回り', key: 'capex_yield', format: 'percentage', class: 'percentage positive' },
                 { label: '債務発行額', key: 'debt_issuance', format: 'currency', class: 'amount' },
                 { label: '債務返済額', key: 'debt_repayment', format: 'currency', class: 'amount' },
-                { label: '総合株主還元率', key: 'total_return', format: 'percentage', class: 'percentage highlight positive', highlight: true }
+                { label: '総合株主還元率（CapEx除く）', key: 'total_return_without_capex', format: 'percentage', class: 'percentage highlight positive', highlight: true },
+                { label: '総合株主還元率（CapEx含む）', key: 'total_return_with_capex', format: 'percentage', class: 'percentage highlight positive', highlight: true }
             ];
             
             tableBody.innerHTML = '';

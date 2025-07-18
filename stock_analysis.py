@@ -356,15 +356,21 @@ class StockAnalyzer:
             # 配当利回りを計算
             dividend_yield = (dividend_amount / market_cap) * 100 if market_cap > 0 else 0
             
-            # 総合株主還元率 = 配当利回り + 自社株買い利回り + CapEx利回り
-            total_return = dividend_yield + buyback_yield + capex_yield
+            # 総合株主還元率（CapEx含む） = 配当利回り + 自社株買い利回り + CapEx利回り
+            total_return_with_capex = dividend_yield + buyback_yield + capex_yield
+            
+            # 総合株主還元率（CapEx除く） = 配当利回り + 自社株買い利回り
+            total_return_without_capex = dividend_yield + buyback_yield
+            
             annual_returns.append({
                 'year': year,
                 'dividend_amount': dividend_amount,
                 'dividend_yield': dividend_yield,
                 'buyback_yield': buyback_yield,
                 'capex_yield': capex_yield,
-                'total_return': total_return
+                'total_return': total_return_with_capex,
+                'total_return_with_capex': total_return_with_capex,
+                'total_return_without_capex': total_return_without_capex
             })
         
         return {'annual_returns': annual_returns}
