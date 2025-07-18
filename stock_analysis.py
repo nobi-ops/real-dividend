@@ -650,7 +650,9 @@ class StockAnalyzer:
                     'Operating Cash Flow',
                     'Cash Flow From Operating Activities',
                     'Net Cash From Operating Activities',
-                    'Cash From Operating Activities'
+                    'Cash From Operating Activities',
+                    'Cash Flowsfromusedin Operating Activities Direct',  # インドネシア株用
+                    'Cash Flows From Used In Operating Activities Direct'
                 ]
                 
                 revenue_key = None
@@ -782,7 +784,7 @@ class StockAnalyzer:
             
             if financials is not None and not financials.empty and cashflow is not None and not cashflow.empty:
                 revenue_keys = ['Total Revenue', 'Revenue', 'Net Sales', 'Sales']
-                ocf_keys = ['Operating Cash Flow', 'Cash Flow From Operating Activities', 'Net Cash From Operating Activities', 'Cash From Operating Activities']
+                ocf_keys = ['Operating Cash Flow', 'Cash Flow From Operating Activities', 'Net Cash From Operating Activities', 'Cash From Operating Activities', 'Cash Flowsfromusedin Operating Activities Direct', 'Cash Flows From Used In Operating Activities Direct']
                 
                 revenue_key = None
                 ocf_key = None
