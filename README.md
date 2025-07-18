@@ -51,7 +51,10 @@ python3 stock_analysis.py
 
 ### Webアプリ
 1. ブラウザで http://localhost:8080 にアクセス
-2. ティッカーコード（例：AAPL, MSFT, GOOGL）を入力
+2. Yahoo Financeと同じ形式のティッカーコードを入力
+   - 米国株：AAPL, MSFT, NVDA
+   - インドネシア株：ANTM.JK, BBCA.JK
+   - シンガポール株：C6L.SI, D05.SI
 3. 分析結果が表形式で表示
 
 ### コマンドライン
@@ -68,22 +71,22 @@ python3 stock_analysis.py
 - **JNJ** (Johnson & Johnson) - 高配当銘柄の代表例
 
 ### 🇮🇩 インドネシア株
-- **ANTM** (PT Aneka Tambang) - 鉱業会社
-- **BBCA** (Bank Central Asia) - 大手銀行
-- **BBRI** (Bank Rakyat Indonesia) - 国営銀行
+- **ANTM.JK** (PT Aneka Tambang) - 鉱業会社
+- **BBCA.JK** (Bank Central Asia) - 大手銀行
+- **BBRI.JK** (Bank Rakyat Indonesia) - 国営銀行
 
 ### 🇸🇬 シンガポール株  
-- **C6L** (Singapore Airlines) - 航空会社
-- **D05** (DBS Group) - 大手銀行
-- **U11** (United Overseas Bank) - 銀行
-- **S68** (Singapore Exchange) - 証券取引所
+- **C6L.SI** (Singapore Airlines) - 航空会社
+- **D05.SI** (DBS Group) - 大手銀行
+- **U11.SI** (United Overseas Bank) - 銀行
+- **S68.SI** (Singapore Exchange) - 証券取引所
 
 ### 🇯🇵 日本株
-- **7203** (トヨタ自動車)
-- **9984** (ソフトバンクグループ)
+- **7203.T** (トヨタ自動車)
+- **9984.T** (ソフトバンクグループ)
 
 ### 🇭🇰 香港株
-- **0700** (Tencent) - テンセント
+- **0700.HK** (Tencent) - テンセント
 
 ### 🌍 その他対応市場
 - 🇬🇧 ロンドン株(.L)
@@ -91,6 +94,8 @@ python3 stock_analysis.py
 - 🇦🇺 オーストラリア株(.AX)
 - 🇩🇪 ドイツ株(.DE)
 - 🇫🇷 フランス株(.PA)
+
+**重要：** Yahoo Financeと同じ形式のティッカーコードを使用してください。
 
 ## ファイル構成
 

@@ -14,37 +14,8 @@ class StockAnalyzer:
     def get_stock_data(self, ticker):
         """ティッカーコードから株式データを取得"""
         try:
-            # 国際株対応: 各市場のサフィックス自動検索
-            possible_tickers = [
-                ticker,           # 米国株（サフィックスなし）
-                f"{ticker}.JK",   # インドネシア株
-                f"{ticker}.SI",   # シンガポール株
-                f"{ticker}.T",    # 日本株（東証）
-                f"{ticker}.HK",   # 香港株
-                f"{ticker}.L",    # ロンドン株
-                f"{ticker}.TO",   # カナダ株（トロント）
-                f"{ticker}.AX",   # オーストラリア株
-                f"{ticker}.DE",   # ドイツ株
-                f"{ticker}.PA",   # フランス株
-            ]
-            
-            stock = None
-            working_ticker = ticker
-            
-            for test_ticker in possible_tickers:
-                try:
-                    test_stock = yf.Ticker(test_ticker)
-                    test_info = test_stock.info
-                    if test_info.get('longName') or test_info.get('shortName'):
-                        stock = test_stock
-                        working_ticker = test_ticker
-                        break
-                except:
-                    continue
-            
-            if not stock:
-                stock = yf.Ticker(ticker)
-                
+            # 入力されたティッカーをそのまま使用（Yahoo Financeと同じ形式）
+            stock = yf.Ticker(ticker)
             info = stock.info
             
             # 基本情報を取得
@@ -57,8 +28,7 @@ class StockAnalyzer:
             dividend_rate = info.get('dividendRate', 0)
             
             return {
-                'ticker': working_ticker,  # 実際に使用されたティッカー
-                'original_ticker': ticker,  # 元のティッカー
+                'ticker': ticker,  # 入力されたティッカーをそのまま使用
                 'company_name': info.get('longName', 'N/A'),
                 'market_cap': market_cap,
                 'current_price': current_price,
@@ -408,7 +378,7 @@ class StockAnalyzer:
         # 結果表示
         print(f"\n=== 基本情報 ===")
         print(f"企業名: {stock_data['company_name']}")
-        print(f"ティッカー: {stock_data['ticker']} (入力: {stock_data['original_ticker']})")
+        print(f"ティッカー: {stock_data['ticker']}")
         print(f"国: {stock_data['country']}")
         print(f"通貨: {stock_data['currency']}")
         print(f"現在株価: {stock_data['current_price']:.2f} {stock_data['currency']}")
@@ -480,17 +450,14 @@ class StockAnalyzer:
         if not stock_data:
             return None
         
-        # 実際に使用されたティッカーを使用
-        working_ticker = stock_data['ticker']
-        
         # 自社株買い情報取得（出力を抑制）
-        repurchase_data = self.get_financial_statements_silent(working_ticker)
+        repurchase_data = self.get_financial_statements_silent(ticker)
         
         # 配当履歴取得（出力を抑制）
-        dividend_data = self.get_dividend_history_silent(working_ticker)
+        dividend_data = self.get_dividend_history_silent(ticker)
         
         # CapExデータ取得（出力を抑制）
-        capex_data = self.get_capex_data_silent(working_ticker)
+        capex_data = self.get_capex_data_silent(ticker)
         
         # 各種利回り計算
         current_dividend_yield = self.calculate_dividend_yield(stock_data)
