@@ -263,6 +263,14 @@
         <div class="header">
             <h1>📊 株主還元率分析ツール</h1>
             <p>配当と自社株買いを組み合わせた真の株主還元率を分析</p>
+            <div style="margin-top: 20px;">
+                <button onclick="toggleDatabaseView()" class="search-btn" style="margin-right: 10px; padding: 10px 20px; font-size: 14px;">
+                    📁 データベース表示
+                </button>
+                <button onclick="clearDatabase()" class="search-btn" style="background: #dc3545; padding: 10px 20px; font-size: 14px;">
+                    🗑️ データベース全削除
+                </button>
+            </div>
         </div>
 
         <div class="search-section">
@@ -343,6 +351,19 @@
                         ※ データはYahoo Finance APIから取得しており、ウェブサイト表示と異なる場合があります
                     </p>
                 </div>
+            </div>
+        </div>
+
+        <div id="databaseView" class="results" style="display: none;">
+            <div class="company-info">
+                <h2>📁 データベース保存銘柄</h2>
+                <div id="databaseStats" style="margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 10px;">
+                    <span id="stockCount">0</span> 銘柄が保存されています
+                </div>
+            </div>
+            
+            <div id="stockList" style="margin-top: 20px;">
+                <!-- 銘柄リストが動的に生成される -->
             </div>
         </div>
     </div>
@@ -492,6 +513,132 @@
             });
             
             document.getElementById('results').style.display = 'block';
+        }
+
+        async function toggleDatabaseView() {
+            const databaseView = document.getElementById('databaseView');
+            const results = document.getElementById('results');
+            
+            if (databaseView.style.display === 'none') {
+                // データベースビューを表示
+                databaseView.style.display = 'block';
+                results.style.display = 'none';
+                await loadDatabaseStocks();
+            } else {
+                // データベースビューを非表示
+                databaseView.style.display = 'none';
+            }
+        }
+
+        async function loadDatabaseStocks() {
+            try {
+                // 統計情報を取得
+                const statsResponse = await fetch('/api/database/stats');
+                const stats = await statsResponse.json();
+                document.getElementById('stockCount').textContent = stats.stock_count;
+                
+                // 銘柄リストを取得
+                const stocksResponse = await fetch('/api/database/stocks');
+                const data = await stocksResponse.json();
+                
+                const stockList = document.getElementById('stockList');
+                stockList.innerHTML = '';
+                
+                if (data.stocks.length === 0) {
+                    stockList.innerHTML = '<p>データベースに保存された銘柄はありません。</p>';
+                    return;
+                }
+                
+                data.stocks.forEach(stock => {
+                    const stockDiv = document.createElement('div');
+                    stockDiv.className = 'company-info';
+                    stockDiv.style.marginBottom = '15px';
+                    stockDiv.style.cursor = 'pointer';
+                    
+                    const lastUpdated = new Date(stock.last_updated).toLocaleDateString('ja-JP');
+                    
+                    stockDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="margin: 0; color: #2d3748;">${stock.ticker}</h3>
+                                <p style="margin: 5px 0; color: #6c757d;">${stock.company_name}</p>
+                                <p style="margin: 5px 0; font-size: 14px; color: #6c757d;">
+                                    ${stock.country} | $${stock.current_price?.toFixed(2) || 'N/A'} | 配当利回り: ${stock.current_dividend_yield?.toFixed(2) || 'N/A'}%
+                                </p>
+                                <p style="margin: 5px 0; font-size: 12px; color: #adb5bd;">更新: ${lastUpdated}</p>
+                            </div>
+                            <div>
+                                <button onclick="viewStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; margin-right: 5px;">
+                                    📊 表示
+                                </button>
+                                <button onclick="deleteStockFromDatabase('${stock.ticker}')" class="search-btn" style="padding: 8px 16px; font-size: 12px; background: #dc3545;">
+                                    🗑️ 削除
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    stockList.appendChild(stockDiv);
+                });
+                
+            } catch (error) {
+                console.error('データベース読み込みエラー:', error);
+                document.getElementById('stockList').innerHTML = '<p style="color: #dc3545;">データベースの読み込みに失敗しました。</p>';
+            }
+        }
+
+        async function viewStockFromDatabase(ticker) {
+            // データベースから銘柄データを取得して表示
+            document.getElementById('tickerInput').value = ticker;
+            document.getElementById('databaseView').style.display = 'none';
+            
+            // 既存の分析フォームを実行
+            document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+        }
+
+        async function deleteStockFromDatabase(ticker) {
+            if (!confirm(`${ticker}をデータベースから削除しますか？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/database/stock/${ticker}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert(`${ticker}を削除しました`);
+                    await loadDatabaseStocks(); // リストを更新
+                } else {
+                    const error = await response.json();
+                    alert(`削除エラー: ${error.error}`);
+                }
+            } catch (error) {
+                alert(`削除エラー: ${error.message}`);
+            }
+        }
+
+        async function clearDatabase() {
+            if (!confirm('データベースの全データを削除しますか？この操作は取り消せません。')) {
+                return;
+            }
+            
+            try {
+                // 全銘柄を取得して削除
+                const response = await fetch('/api/database/stocks');
+                const data = await response.json();
+                
+                for (const stock of data.stocks) {
+                    await fetch(`/api/database/stock/${stock.ticker}`, {
+                        method: 'DELETE'
+                    });
+                }
+                
+                alert('データベースを全削除しました');
+                await loadDatabaseStocks(); // リストを更新
+            } catch (error) {
+                alert(`削除エラー: ${error.message}`);
+            }
         }
     </script>
 </body>

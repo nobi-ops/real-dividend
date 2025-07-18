@@ -6,6 +6,7 @@ import os
 # 既存のStockAnalyzerクラスをインポート
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from stock_analysis import StockAnalyzer
+from database import StockDatabase
 
 app = Flask(__name__)
 CORS(app)
@@ -55,6 +56,49 @@ def analyze_stock():
         
     except Exception as e:
         return jsonify({'error': f'エラーが発生しました: {str(e)}'}), 500
+
+@app.route('/api/database/stocks', methods=['GET'])
+def get_database_stocks():
+    """データベースに保存されている全銘柄を取得"""
+    try:
+        db = StockDatabase()
+        stocks = db.get_all_stocks()
+        return jsonify({'stocks': stocks})
+    except Exception as e:
+        return jsonify({'error': f'データベースエラー: {str(e)}'}), 500
+
+@app.route('/api/database/stats', methods=['GET'])
+def get_database_stats():
+    """データベースの統計情報を取得"""
+    try:
+        db = StockDatabase()
+        stats = db.get_database_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': f'データベースエラー: {str(e)}'}), 500
+
+@app.route('/api/database/stock/<ticker>', methods=['GET'])
+def get_stock_from_database(ticker):
+    """データベースから特定銘柄の分析データを取得"""
+    try:
+        db = StockDatabase()
+        stock_data = db.get_stock_analysis(ticker.upper())
+        if stock_data:
+            return jsonify(stock_data)
+        else:
+            return jsonify({'error': f'{ticker}のデータが見つかりません'}), 404
+    except Exception as e:
+        return jsonify({'error': f'データベースエラー: {str(e)}'}), 500
+
+@app.route('/api/database/stock/<ticker>', methods=['DELETE'])
+def delete_stock_from_database(ticker):
+    """データベースから特定銘柄を削除"""
+    try:
+        db = StockDatabase()
+        db.delete_stock(ticker.upper())
+        return jsonify({'message': f'{ticker}を削除しました'})
+    except Exception as e:
+        return jsonify({'error': f'データベースエラー: {str(e)}'}), 500
 
 if __name__ == '__main__':
     import os

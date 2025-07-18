@@ -4,12 +4,13 @@ import requests
 import json
 from datetime import datetime, timedelta
 import pandas as pd
+from database import StockDatabase
 
 class StockAnalyzer:
     """株式の配当と自社株買いを分析するクラス"""
     
     def __init__(self):
-        pass
+        self.db = StockDatabase()
     
     def get_stock_data(self, ticker):
         """ティッカーコードから株式データを取得"""
@@ -501,9 +502,12 @@ class StockAnalyzer:
         capex_yields = self.calculate_capex_equivalent_yield_silent(stock_data, capex_data)
         total_returns = self.calculate_total_shareholder_return(stock_data['market_cap'], dividend_data, buyback_yields, capex_yields, revenue_cashflow_data)
         
-        return {
+        # 分析結果を構造化
+        analysis_result = {
             'ticker': ticker,
             'company_name': stock_data['company_name'],
+            'country': stock_data.get('country', 'N/A'),
+            'currency': stock_data.get('currency', 'USD'),
             'current_price': stock_data['current_price'],
             'market_cap': stock_data['market_cap'],
             'dividend_rate': stock_data['dividend_rate'],
@@ -518,6 +522,14 @@ class StockAnalyzer:
             'roi_data': roi_data,
             'total_returns': total_returns
         }
+        
+        # データベースに保存
+        try:
+            self.db.save_stock_analysis(analysis_result)
+        except Exception as e:
+            print(f"データベース保存エラー: {e}")
+        
+        return analysis_result
     
     def get_financial_statements_silent(self, ticker):
         """財務諸表から自社株買い情報を取得（出力なし）"""
