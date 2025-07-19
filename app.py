@@ -6,7 +6,7 @@ import os
 # 既存のStockAnalyzerクラスをインポート
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from stock_analysis import StockAnalyzer
-from database import StockDatabase
+from database_postgres import PostgreSQLDatabase as StockDatabase
 
 app = Flask(__name__)
 CORS(app)

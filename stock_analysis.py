@@ -4,7 +4,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 import pandas as pd
-from database import StockDatabase
+from database_postgres import PostgreSQLDatabase as StockDatabase
 
 class StockAnalyzer:
     """株式の配当と自社株買いを分析するクラス"""
